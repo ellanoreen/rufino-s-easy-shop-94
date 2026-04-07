@@ -1,0 +1,103 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 33% 97%;
+    --foreground: 25 20% 15%;
+
+    --card: 40 30% 99%;
+    --card-foreground: 25 20% 15%;
+
+    --popover: 40 30% 99%;
+    --popover-foreground: 25 20% 15%;
+
+    --primary: 25 35% 28%;
+    --primary-foreground: 40 30% 96%;
+
+    --secondary: 35 25% 91%;
+    --secondary-foreground: 25 20% 15%;
+
+    --muted: 35 18% 93%;
+    --muted-foreground: 25 10% 50%;
+
+    --accent: 38 65% 50%;
+    --accent-foreground: 40 30% 99%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 35 20% 88%;
+    --input: 35 20% 88%;
+    --ring: 25 35% 28%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 25 20% 12%;
+    --sidebar-foreground: 40 30% 96%;
+    --sidebar-primary: 38 65% 50%;
+    --sidebar-primary-foreground: 40 30% 99%;
+    --sidebar-accent: 25 18% 20%;
+    --sidebar-accent-foreground: 40 30% 96%;
+    --sidebar-border: 25 15% 22%;
+    --sidebar-ring: 38 65% 50%;
+
+    --success: 142 60% 40%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 25 20% 15%;
+  }
+
+  .dark {
+    --background: 25 20% 8%;
+    --foreground: 40 30% 96%;
+    --card: 25 18% 12%;
+    --card-foreground: 40 30% 96%;
+    --popover: 25 18% 12%;
+    --popover-foreground: 40 30% 96%;
+    --primary: 38 65% 50%;
+    --primary-foreground: 25 20% 8%;
+    --secondary: 25 15% 18%;
+    --secondary-foreground: 40 30% 96%;
+    --muted: 25 12% 20%;
+    --muted-foreground: 35 15% 60%;
+    --accent: 38 65% 50%;
+    --accent-foreground: 25 20% 8%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 25 12% 22%;
+    --input: 25 12% 22%;
+    --ring: 38 65% 50%;
+    --sidebar-background: 25 20% 6%;
+    --sidebar-foreground: 40 30% 96%;
+    --sidebar-primary: 38 65% 50%;
+    --sidebar-primary-foreground: 25 20% 8%;
+    --sidebar-accent: 25 15% 14%;
+    --sidebar-accent-foreground: 40 30% 96%;
+    --sidebar-border: 25 12% 18%;
+    --sidebar-ring: 38 65% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Playfair Display', serif;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Playfair Display', serif;
+  }
+}
