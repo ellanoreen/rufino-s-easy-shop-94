@@ -227,20 +227,6 @@ const AdminProducts = () => {
                     />
                   </div>
                   
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Or</span></div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs font-normal text-muted-foreground">Image URL</Label>
-                    <Input 
-                      value={form.image.startsWith('data:') ? '' : form.image} 
-                      onChange={e => setForm(f => ({ ...f, image: e.target.value }))} 
-                      placeholder="https://example.com/image.jpg" 
-                    />
-                  </div>
-
                   {form.image && (
                     <div className="relative w-fit">
                       <img src={form.image} alt="Preview" className="h-24 w-24 rounded-md object-cover border" />
