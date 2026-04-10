@@ -12,7 +12,8 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Init DB
 initializeDB();
@@ -32,7 +33,7 @@ app.get('/api/products', async (req, res) => {
 
 app.post('/api/products', async (req, res) => {
   try {
-    const { name, description, price, image, category, stock, featured, sizes, colors } = req.body;
+    const { name, description, price, image, category, stock, featured = false, sizes, colors } = req.body;
     const result = await query(
       `INSERT INTO products (name, description, price, image, category, stock, featured, sizes, colors) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
@@ -40,6 +41,7 @@ app.post('/api/products', async (req, res) => {
     );
     res.json(result.rows[0]);
   } catch (error) {
+    console.error('Error adding product:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -47,7 +49,7 @@ app.post('/api/products', async (req, res) => {
 app.put('/api/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, price, image, category, stock, featured, sizes, colors } = req.body;
+    const { name, description, price, image, category, stock, featured = false, sizes, colors } = req.body;
     const result = await query(
       `UPDATE products SET name=$1, description=$2, price=$3, image=$4, category=$5, stock=$6, featured=$7, sizes=$8, colors=$9
        WHERE id = $10 RETURNING *`,
@@ -55,6 +57,7 @@ app.put('/api/products/:id', async (req, res) => {
     );
     res.json(result.rows[0]);
   } catch (error) {
+    console.error('Error updating product:', error);
     res.status(500).json({ error: error.message });
   }
 });

@@ -27,11 +27,14 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(product),
       });
-      if (!res.ok) throw new Error('Failed to add product');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to add product (${res.status})`);
+      }
       const newProduct = await res.json();
       setProducts(prev => [...prev, newProduct]);
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to add product:', err);
       return false;
     }
@@ -44,11 +47,14 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(product),
       });
-      if (!res.ok) throw new Error('Failed to update product');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to update product (${res.status})`);
+      }
       const updatedProduct = await res.json();
       setProducts(prev => prev.map(p => p.id === product.id ? updatedProduct : p));
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update product:', err);
       return false;
     }

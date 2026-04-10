@@ -101,17 +101,33 @@ const AdminProducts = () => {
     };
 
     let success = false;
-    if (editing) {
-      success = await updateProduct(productData as Product);
-      if (success) toast({ title: 'Product updated', description: `"${productData.name}" has been updated successfully.` });
-    } else {
-      success = await addProduct(productData);
-      if (success) toast({ title: 'Product added', description: `"${productData.name}" has been added to the catalog.` });
-    }
+    try {
+      if (editing) {
+        success = await updateProduct(productData as Product);
+        if (success) toast({ title: 'Product updated', description: `"${productData.name}" has been updated successfully.` });
+      } else {
+        success = await addProduct(productData);
+        if (success) toast({ title: 'Product added', description: `"${productData.name}" has been added to the catalog.` });
+      }
 
-    setLoading(false);
-    if (success) setDialogOpen(false);
-    else toast({ title: 'Error', description: 'Failed to save product. Please try again.', variant: 'destructive' });
+      if (!success) {
+        toast({ 
+          title: 'Error', 
+          description: 'Failed to save product. The image might be too large or there was a database error.', 
+          variant: 'destructive' 
+        });
+      }
+    } catch (err: any) {
+      console.error('Save error:', err);
+      toast({ 
+        title: 'Error', 
+        description: err.message || 'An unexpected error occurred while saving.', 
+        variant: 'destructive' 
+      });
+    } finally {
+      setLoading(false);
+      if (success) setDialogOpen(false);
+    }
   };
 
   const handleDelete = async (p: Product) => {
