@@ -3,9 +3,9 @@ import { Product } from '@/types';
 
 interface ProductContextType {
   products: Product[];
-  addProduct: (product: Product) => Promise<void>;
-  updateProduct: (product: Product) => Promise<void>;
-  deleteProduct: (productId: string) => Promise<void>;
+  addProduct: (product: Omit<Product, 'id'>) => Promise<boolean>;
+  updateProduct: (product: Product) => Promise<boolean>;
+  deleteProduct: (productId: string) => Promise<boolean>;
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
@@ -20,17 +20,20 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
       .catch(err => console.error('Failed to fetch products:', err));
   }, []);
 
-  const addProduct = useCallback(async (product: Product) => {
+  const addProduct = useCallback(async (product: Omit<Product, 'id'>) => {
     try {
       const res = await fetch('/api/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(product),
       });
+      if (!res.ok) throw new Error('Failed to add product');
       const newProduct = await res.json();
       setProducts(prev => [...prev, newProduct]);
+      return true;
     } catch (err) {
       console.error('Failed to add product:', err);
+      return false;
     }
   }, []);
 
@@ -41,19 +44,25 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(product),
       });
+      if (!res.ok) throw new Error('Failed to update product');
       const updatedProduct = await res.json();
       setProducts(prev => prev.map(p => p.id === product.id ? updatedProduct : p));
+      return true;
     } catch (err) {
       console.error('Failed to update product:', err);
+      return false;
     }
   }, []);
 
   const deleteProduct = useCallback(async (productId: string) => {
     try {
-      await fetch(`/api/products/${productId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/products/${productId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete product');
       setProducts(prev => prev.filter(p => p.id !== productId));
+      return true;
     } catch (err) {
       console.error('Failed to delete product:', err);
+      return false;
     }
   }, []);
 

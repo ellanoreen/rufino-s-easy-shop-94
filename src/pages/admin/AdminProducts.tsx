@@ -34,6 +34,7 @@ const AdminProducts = () => {
   const [sizeTags, setSizeTags] = useState<string[]>([]);
   const [colorTags, setColorTags] = useState<string[]>([]);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [loading, setLoading] = useState(false);
 
   const filtered = productsList.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -83,10 +84,12 @@ const AdminProducts = () => {
     if (v && !colorTags.includes(v)) { setColorTags(prev => [...prev, v]); setColorInput(''); }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validate()) return;
-    const product: Product = {
-      id: editing?.id || Date.now().toString(),
+    setLoading(true);
+    
+    const productData: Omit<Product, 'id'> | Product = {
+      ...(editing ? { id: editing.id } : {}),
       name: form.name.trim(),
       description: form.description.trim(),
       price: parseFloat(form.price),
@@ -96,19 +99,25 @@ const AdminProducts = () => {
       sizes: sizeTags.length > 0 ? sizeTags : ['Standard'],
       colors: colorTags.length > 0 ? colorTags : ['Default'],
     };
+
+    let success = false;
     if (editing) {
-      updateProduct(product);
-      toast({ title: 'Product updated', description: `"${product.name}" has been updated successfully.` });
+      success = await updateProduct(productData as Product);
+      if (success) toast({ title: 'Product updated', description: `"${productData.name}" has been updated successfully.` });
     } else {
-      addProduct(product);
-      toast({ title: 'Product added', description: `"${product.name}" has been added to the catalog.` });
+      success = await addProduct(productData);
+      if (success) toast({ title: 'Product added', description: `"${productData.name}" has been added to the catalog.` });
     }
-    setDialogOpen(false);
+
+    setLoading(false);
+    if (success) setDialogOpen(false);
+    else toast({ title: 'Error', description: 'Failed to save product. Please try again.', variant: 'destructive' });
   };
 
-  const handleDelete = (p: Product) => {
-    deleteProduct(p.id);
-    toast({ title: 'Product deleted', description: `"${p.name}" has been removed.` });
+  const handleDelete = async (p: Product) => {
+    const success = await deleteProduct(p.id);
+    if (success) toast({ title: 'Product deleted', description: `"${p.name}" has been removed.` });
+    else toast({ title: 'Error', description: 'Failed to delete product.', variant: 'destructive' });
   };
 
   return (
@@ -199,21 +208,39 @@ const AdminProducts = () => {
               <div>
                 <Label>Product Image</Label>
                 <div className="mt-1 flex flex-col gap-3">
-                  <Input 
-                    type="file" 
-                    accept="image/*"
-                    onChange={e => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          setForm(f => ({ ...f, image: reader.result as string }));
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                    className="cursor-pointer"
-                  />
+                  <div className="space-y-2">
+                    <Label className="text-xs font-normal text-muted-foreground">Upload Image</Label>
+                    <Input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setForm(f => ({ ...f, image: reader.result as string }));
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="cursor-pointer"
+                    />
+                  </div>
+                  
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Or</span></div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-normal text-muted-foreground">Image URL</Label>
+                    <Input 
+                      value={form.image.startsWith('data:') ? '' : form.image} 
+                      onChange={e => setForm(f => ({ ...f, image: e.target.value }))} 
+                      placeholder="https://example.com/image.jpg" 
+                    />
+                  </div>
+
                   {form.image && (
                     <div className="relative w-fit">
                       <img src={form.image} alt="Preview" className="h-24 w-24 rounded-md object-cover border" />
@@ -228,7 +255,9 @@ const AdminProducts = () => {
                   )}
                 </div>
               </div>
-              <Button className="w-full" onClick={handleSave}>{editing ? 'Update Product' : 'Add Product'}</Button>
+              <Button className="w-full" onClick={handleSave} disabled={loading}>
+                {loading ? 'Processing...' : (editing ? 'Update Product' : 'Add Product')}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
