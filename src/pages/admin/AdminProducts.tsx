@@ -113,7 +113,7 @@ const AdminProducts = () => {
       if (!success) {
         toast({ 
           title: 'Error', 
-          description: 'Failed to save product. The image might be too large or there was a database error.', 
+          description: 'Failed to save product. Please check your connection and try again.', 
           variant: 'destructive' 
         });
       }
