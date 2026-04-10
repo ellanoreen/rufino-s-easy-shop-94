@@ -19,7 +19,6 @@ const Footer = () => (
         <div>
           <h4 className="mb-3 font-semibold text-sm uppercase tracking-wider opacity-70">Contact</h4>
           <p className="text-sm opacity-80">rufinos.furniture@email.com</p>
-          <p className="text-sm opacity-80">+63 917 123 4567</p>
         </div>
       </div>
       <div className="mt-8 border-t border-primary-foreground/20 pt-6 text-center text-xs opacity-60">

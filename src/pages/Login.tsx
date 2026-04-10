@@ -43,11 +43,6 @@ const Login = () => {
           <p className="mt-4 text-center text-sm text-muted-foreground">
             Don't have an account? <Link to="/register" className="text-accent hover:underline">Register</Link>
           </p>
-          <div className="mt-4 rounded-md bg-muted p-3 text-xs text-muted-foreground">
-            <p className="font-semibold">Demo Accounts:</p>
-            <p>Admin: admin@rufinos.com / admin123</p>
-            <p>Customer: customer@test.com / customer123</p>
-          </div>
         </CardContent>
       </Card>
     </div>
