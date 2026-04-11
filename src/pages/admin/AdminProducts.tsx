@@ -100,40 +100,35 @@ const AdminProducts = () => {
       colors: colorTags.length > 0 ? colorTags : ['Default'],
     };
 
-    let success = false;
     try {
       if (editing) {
-        success = await updateProduct(productData as Product);
-        if (success) toast({ title: 'Product updated', description: `"${productData.name}" has been updated successfully.` });
+        await updateProduct(productData as Product);
+        toast({ title: 'Product updated', description: `"${productData.name}" has been updated successfully.` });
       } else {
-        success = await addProduct(productData);
-        if (success) toast({ title: 'Product added', description: `"${productData.name}" has been added to the catalog.` });
+        await addProduct(productData);
+        toast({ title: 'Product added', description: `"${productData.name}" has been added to the catalog.` });
       }
-
-      if (!success) {
-        toast({ 
-          title: 'Error', 
-          description: 'Failed to save product. Please check your connection and try again.', 
-          variant: 'destructive' 
-        });
-      }
+      setDialogOpen(false);
     } catch (err: any) {
       console.error('Save error:', err);
       toast({ 
-        title: 'Error', 
+        title: 'Error Saving Product', 
         description: err.message || 'An unexpected error occurred while saving.', 
         variant: 'destructive' 
       });
     } finally {
       setLoading(false);
-      if (success) setDialogOpen(false);
     }
   };
 
   const handleDelete = async (p: Product) => {
-    const success = await deleteProduct(p.id);
-    if (success) toast({ title: 'Product deleted', description: `"${p.name}" has been removed.` });
-    else toast({ title: 'Error', description: 'Failed to delete product.', variant: 'destructive' });
+    try {
+      await deleteProduct(p.id);
+      toast({ title: 'Product deleted', description: `"${p.name}" has been removed.` });
+    } catch (err: any) {
+      console.error('Delete error:', err);
+      toast({ title: 'Error Deleting Product', description: err.message || 'Failed to delete product.', variant: 'destructive' });
+    }
   };
 
   return (

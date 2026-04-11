@@ -36,7 +36,7 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return true;
     } catch (err: any) {
       console.error('Failed to add product:', err);
-      return false;
+      throw err;
     }
   }, []);
 
@@ -56,19 +56,22 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return true;
     } catch (err: any) {
       console.error('Failed to update product:', err);
-      return false;
+      throw err;
     }
   }, []);
 
   const deleteProduct = useCallback(async (productId: string) => {
     try {
       const res = await fetch(`/api/products/${productId}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to delete product');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to delete product (${res.status})`);
+      }
       setProducts(prev => prev.filter(p => p.id !== productId));
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to delete product:', err);
-      return false;
+      throw err;
     }
   }, []);
 

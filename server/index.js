@@ -42,7 +42,10 @@ app.post('/api/products', async (req, res) => {
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error adding product:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      error: error.message,
+      detail: error.detail || 'Internal server error'
+    });
   }
 });
 
@@ -58,7 +61,10 @@ app.put('/api/products/:id', async (req, res) => {
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error updating product:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      error: error.message,
+      detail: error.detail || 'Internal server error'
+    });
   }
 });
 
