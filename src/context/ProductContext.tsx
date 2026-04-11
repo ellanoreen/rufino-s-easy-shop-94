@@ -27,12 +27,22 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(product),
       });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to add product (${res.status})`);
+
+      const contentType = res.headers.get('content-type');
+      let data;
+      if (contentType && contentType.includes('application/json')) {
+        data = await res.json().catch(() => null);
       }
-      const newProduct = await res.json();
-      setProducts(prev => [...prev, newProduct]);
+
+      if (!res.ok) {
+        throw new Error(data?.error || `Server error (${res.status}): ${res.statusText}`);
+      }
+
+      if (!data) {
+        throw new Error('Server returned an invalid or empty response.');
+      }
+
+      setProducts(prev => [...prev, data]);
       return true;
     } catch (err: any) {
       console.error('Failed to add product:', err);
@@ -47,12 +57,22 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(product),
       });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to update product (${res.status})`);
+
+      const contentType = res.headers.get('content-type');
+      let data;
+      if (contentType && contentType.includes('application/json')) {
+        data = await res.json().catch(() => null);
       }
-      const updatedProduct = await res.json();
-      setProducts(prev => prev.map(p => p.id === product.id ? updatedProduct : p));
+
+      if (!res.ok) {
+        throw new Error(data?.error || `Server error (${res.status}): ${res.statusText}`);
+      }
+
+      if (!data) {
+        throw new Error('Server returned an invalid or empty response.');
+      }
+
+      setProducts(prev => prev.map(p => p.id === product.id ? data : p));
       return true;
     } catch (err: any) {
       console.error('Failed to update product:', err);
@@ -63,10 +83,17 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const deleteProduct = useCallback(async (productId: string) => {
     try {
       const res = await fetch(`/api/products/${productId}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to delete product (${res.status})`);
+      
+      const contentType = res.headers.get('content-type');
+      let data;
+      if (contentType && contentType.includes('application/json')) {
+        data = await res.json().catch(() => null);
       }
+
+      if (!res.ok) {
+        throw new Error(data?.error || `Failed to delete product (${res.status})`);
+      }
+      
       setProducts(prev => prev.filter(p => p.id !== productId));
       return true;
     } catch (err: any) {
