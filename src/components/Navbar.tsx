@@ -27,8 +27,12 @@ const Navbar = () => {
   return (
     <nav className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-md">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link to={isAdmin ? '/admin' : '/'} className="font-display text-xl font-bold tracking-tight text-foreground">
-          Rufino's <span className="text-accent">Furniture</span>
+        <Link to={isAdmin ? '/admin' : '/'} className="flex items-center">
+          <img
+            src="/logo.png"
+            alt="Rufino's Furniture"
+            className="h-12 w-auto object-contain"
+          />
         </Link>
 
         {/* Desktop */}

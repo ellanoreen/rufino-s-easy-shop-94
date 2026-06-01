@@ -37,8 +37,12 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       {/* Desktop Sidebar */}
       <aside className="hidden w-64 flex-col border-r bg-card lg:flex">
         <div className="flex h-16 items-center border-b px-6">
-          <Link to="/admin" className="font-display text-lg font-bold tracking-tight">
-            Rufino's <span className="text-accent">Admin</span>
+          <Link to="/admin" className="flex items-center">
+            <img
+              src="/logo.png"
+              alt="Rufino's Furniture"
+              className="h-10 w-auto object-contain"
+            />
           </Link>
         </div>
         <nav className="flex-1 space-y-1 p-4">
@@ -70,8 +74,12 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       {/* Mobile Header */}
       <div className="flex flex-1 flex-col">
         <header className="flex h-14 items-center justify-between border-b bg-card px-4 lg:hidden">
-          <Link to="/admin" className="font-display text-lg font-bold">
-            Rufino's <span className="text-accent">Admin</span>
+          <Link to="/admin" className="flex items-center">
+            <img
+              src="/logo.png"
+              alt="Rufino's Furniture"
+              className="h-9 w-auto object-contain"
+            />
           </Link>
           <Button variant="ghost" size="icon" onClick={() => setMobileOpen(!mobileOpen)}>
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}

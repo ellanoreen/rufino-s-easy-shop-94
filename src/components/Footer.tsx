@@ -5,7 +5,11 @@ const Footer = () => (
     <div className="container mx-auto px-4 py-12">
       <div className="grid gap-8 md:grid-cols-3">
         <div>
-          <h3 className="mb-3 font-display text-lg font-semibold">Rufino's Furniture</h3>
+          <img
+            src="/logo.png"
+            alt="Rufino's Furniture"
+            className="mb-3 h-14 w-auto object-contain brightness-0 invert"
+          />
           <p className="text-sm opacity-80">Making quality furniture accessible. Crafted with care, delivered with love.</p>
         </div>
         <div>

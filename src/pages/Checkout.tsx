@@ -39,8 +39,6 @@ const Checkout = () => {
 
   const paymentLabels: Record<string, string> = {
     cod: 'Cash on Delivery',
-    gcash: 'GCash',
-    bank: 'Bank Transfer',
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -95,8 +93,6 @@ const Checkout = () => {
                 <SelectTrigger><SelectValue placeholder="Select payment method" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="cod">Cash on Delivery</SelectItem>
-                  <SelectItem value="gcash">GCash</SelectItem>
-                  <SelectItem value="bank">Bank Transfer</SelectItem>
                 </SelectContent>
               </Select>
               {errors.payment && <p className="mt-1 text-sm text-destructive">{errors.payment}</p>}
