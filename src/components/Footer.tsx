@@ -9,7 +9,7 @@ const Footer = () => (
             src="/logo.png"
             alt="Rufino's Furniture"
             className="mb-3 h-20 w-auto object-contain"
-            style={{ filter: 'brightness(0) invert(1)' }}
+            style={{ filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.15))' }}
           />
           <p className="text-sm opacity-80">Making quality furniture accessible. Crafted with care, delivered with love.</p>
         </div>
