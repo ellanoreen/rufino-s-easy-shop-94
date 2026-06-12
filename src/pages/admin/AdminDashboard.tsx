@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Package, ShoppingCart, DollarSign, TrendingUp, ArrowRight, Warehouse, FileText } from 'lucide-react';
+import { Package, ShoppingCart, PhilippinePeso, TrendingUp, ArrowRight, Warehouse, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,7 +24,7 @@ const AdminDashboard = () => {
   const stats = [
     { label: 'Total Products', value: products.length, icon: Package, color: 'bg-accent/10 text-accent' },
     { label: 'Total Orders', value: orders.length, icon: ShoppingCart, color: 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300' },
-    { label: 'Revenue', value: `₱${orders.filter(o => o.status === 'Completed').reduce((s, o) => s + o.total, 0).toLocaleString()}`, icon: DollarSign, color: 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300' },
+    { label: 'Revenue', value: `₱${orders.filter(o => o.status === 'Completed').reduce((s, o) => s + o.total, 0).toLocaleString()}`, icon: PhilippinePeso, color: 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300' },
     { label: 'Pending Orders', value: orders.filter(o => o.status === 'Pending').length, icon: TrendingUp, color: 'bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300' },
   ];
 

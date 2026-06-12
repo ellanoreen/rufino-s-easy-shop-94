@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, Package, ShoppingCart, DollarSign } from 'lucide-react';
+import { FileText, Package, ShoppingCart, PhilippinePeso } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -122,7 +122,7 @@ const AdminReports = () => {
 
       <Tabs defaultValue="sales">
         <TabsList>
-          <TabsTrigger value="sales"><DollarSign className="h-4 w-4 mr-1" />Sales</TabsTrigger>
+          <TabsTrigger value="sales"><PhilippinePeso className="h-4 w-4 mr-1" />Sales</TabsTrigger>
           <TabsTrigger value="orders"><ShoppingCart className="h-4 w-4 mr-1" />Orders</TabsTrigger>
           <TabsTrigger value="inventory"><Package className="h-4 w-4 mr-1" />Inventory</TabsTrigger>
         </TabsList>

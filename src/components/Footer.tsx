@@ -9,7 +9,7 @@ const Footer = () => (
             src="/logo.png"
             alt="Rufino's Furniture"
             className="mb-3 h-20 w-auto object-contain"
-            style={{ mixBlendMode: 'multiply' }}
+            style={{ filter: 'brightness(0) invert(1)' }}
           />
           <p className="text-sm opacity-80">Making quality furniture accessible. Crafted with care, delivered with love.</p>
         </div>
