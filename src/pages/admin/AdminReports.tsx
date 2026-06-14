@@ -13,7 +13,7 @@ const AdminReports = () => {
   const { products } = useProducts();
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [selectedInventoryFilter, setSelectedInventoryFilter] = useState<'Total Products' | 'Total Stock' | 'Low Stock' | null>(null);
-  const [selectedSalesFilter, setSelectedSalesFilter] = useState<'Total Revenue' | 'Completed Orders' | 'Avg Order Value' | null>(null);
+  const [selectedSalesFilter, setSelectedSalesFilter] = useState<'Total Revenue' | 'Completed Orders' | 'Average Order Value' | null>(null);
 
   const totalRevenue = orders.filter(o => o.status === 'Completed').reduce((s, o) => s + o.total, 0);
   const totalOrders = orders.length;
@@ -142,9 +142,9 @@ const AdminReports = () => {
                 <p className="text-3xl font-bold mt-1">{completedOrders}</p>
               </CardContent>
             </Card>
-            <Card onClick={() => setSelectedSalesFilter('Avg Order Value')} className={`cursor-pointer transition-colors border-2 hover:border-green-600/50 ${selectedSalesFilter === 'Avg Order Value' ? 'border-green-600 ring-2 ring-green-600/20' : 'border-transparent'}`}>
+            <Card onClick={() => setSelectedSalesFilter('Average Order Value')} className={`cursor-pointer transition-colors border-2 hover:border-green-600/50 ${selectedSalesFilter === 'Average Order Value' ? 'border-green-600 ring-2 ring-green-600/20' : 'border-transparent'}`}>
               <CardContent className="p-6 text-center flex flex-col items-center justify-center">
-                <p className="text-sm text-muted-foreground">Avg Order Value</p>
+                <p className="text-sm text-muted-foreground">Average Order Value</p>
                 <p className="text-3xl font-bold mt-1">₱{completedOrders > 0 ? Math.round(totalRevenue / completedOrders).toLocaleString() : '0'}</p>
               </CardContent>
             </Card>
