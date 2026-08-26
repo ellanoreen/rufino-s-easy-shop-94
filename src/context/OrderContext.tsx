@@ -3,9 +3,19 @@ import { Order, CartItem } from '@/types';
 
 interface OrderContextType {
   orders: Order[];
-  placeOrder: (items: CartItem[], total: number, customerName: string, address: string, contact: string, paymentMethod: string) => Promise<void>;
+  placeOrder: (
+    items: CartItem[],
+    total: number,
+    customerName: string,
+    address: string,
+    contact: string,
+    paymentMethod: string,
+    installationSelected?: boolean,
+    installationFee?: number
+  ) => Promise<void>;
   updateOrderStatus: (orderId: string, status: Order['status']) => Promise<void>;
   deleteOrder: (orderId: string) => Promise<void>;
+  submitFeedback: (orderId: string, rating: number, feedback: string) => Promise<void>;
 }
 
 const OrderContext = createContext<OrderContextType | undefined>(undefined);
@@ -16,17 +26,41 @@ const getExpectedDeliveryDate = (): string => {
   return d.toISOString().split('T')[0];
 };
 
+const normalizeOrder = (o: any): Order => {
+  const item = { ...o };
+  if ('installation_selected' in item) {
+    item.installationSelected = item.installation_selected;
+    delete item.installation_selected;
+  }
+  if ('installation_fee' in item) {
+    item.installationFee = Number(item.installation_fee);
+    delete item.installation_fee;
+  }
+  return item as Order;
+};
+
 export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [orders, setOrders] = useState<Order[]>([]);
 
   useEffect(() => {
     fetch('/api/orders')
       .then(res => res.json())
-      .then(data => setOrders(data))
+      .then((data: any[]) => {
+        setOrders(data.map(normalizeOrder));
+      })
       .catch(err => console.error('Failed to fetch orders:', err));
   }, []);
 
-  const placeOrder = useCallback(async (items: CartItem[], total: number, customerName: string, address: string, contact: string, paymentMethod: string) => {
+  const placeOrder = useCallback(async (
+    items: CartItem[],
+    total: number,
+    customerName: string,
+    address: string,
+    contact: string,
+    paymentMethod: string,
+    installationSelected?: boolean,
+    installationFee?: number
+  ) => {
     try {
       const newOrderData = {
         items,
@@ -36,6 +70,8 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         address,
         contact,
         paymentMethod,
+        installationSelected: installationSelected ?? false,
+        installationFee: installationFee ?? 0,
         date: new Date().toISOString().split('T')[0],
         expectedDeliveryDate: getExpectedDeliveryDate(),
       };
@@ -46,11 +82,12 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         body: JSON.stringify(newOrderData),
       });
       const newOrder = await res.json();
-      setOrders(prev => [newOrder, ...prev]);
+      setOrders(prev => [normalizeOrder(newOrder), ...prev]);
     } catch (err) {
         console.error('Failed to place order:', err);
     }
   }, []);
+
 
   const updateOrderStatus = useCallback(async (orderId: string, status: Order['status']) => {
     try {
@@ -78,8 +115,22 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, []);
 
+  const submitFeedback = useCallback(async (orderId: string, rating: number, feedback: string) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}/feedback`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating, feedback }),
+      });
+      const updatedOrder = await res.json();
+      setOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o));
+    } catch (err) {
+      console.error('Failed to submit feedback:', err);
+    }
+  }, []);
+
   return (
-    <OrderContext.Provider value={{ orders, placeOrder, updateOrderStatus, deleteOrder }}>
+    <OrderContext.Provider value={{ orders, placeOrder, updateOrderStatus, deleteOrder, submitFeedback }}>
       {children}
     </OrderContext.Provider>
   );

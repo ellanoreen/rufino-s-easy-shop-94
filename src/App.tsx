@@ -7,6 +7,7 @@ import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { OrderProvider } from "@/context/OrderContext";
 import { ProductProvider } from "@/context/ProductContext";
+import { SettingsProvider } from "@/context/SettingsContext";
 import Layout from "@/components/Layout";
 import AdminLayout from "@/components/AdminLayout";
 import RoleGuard from "@/components/RoleGuard";
@@ -19,7 +20,6 @@ import Orders from "./pages/Orders";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminProducts from "./pages/admin/AdminProducts";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminInventory from "./pages/admin/AdminInventory";
 import AdminReports from "./pages/admin/AdminReports";
@@ -31,6 +31,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
+        <SettingsProvider>
         <ProductProvider>
           <OrderProvider>
             <CartProvider>
@@ -40,7 +41,6 @@ const App = () => (
                 <Routes>
                   {/* Admin routes - blocked for customers */}
                   <Route path="/admin" element={<RoleGuard role="admin"><AdminLayout><AdminDashboard /></AdminLayout></RoleGuard>} />
-                  <Route path="/admin/products" element={<RoleGuard role="admin"><AdminLayout><AdminProducts /></AdminLayout></RoleGuard>} />
                   <Route path="/admin/orders" element={<RoleGuard role="admin"><AdminLayout><AdminOrders /></AdminLayout></RoleGuard>} />
                   <Route path="/admin/inventory" element={<RoleGuard role="admin"><AdminLayout><AdminInventory /></AdminLayout></RoleGuard>} />
                   <Route path="/admin/reports" element={<RoleGuard role="admin"><AdminLayout><AdminReports /></AdminLayout></RoleGuard>} />
@@ -60,6 +60,7 @@ const App = () => (
             </CartProvider>
           </OrderProvider>
         </ProductProvider>
+        </SettingsProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

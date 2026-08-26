@@ -24,6 +24,9 @@ const Index = () => {
             <p className="mt-4 text-lg text-primary-foreground/80">
               Curated pieces designed for comfort, crafted for beauty.
             </p>
+            <p className="mt-2 text-base text-primary-foreground/70">
+              We deliver and install furniture for your convenience.
+            </p>
             <Link to="/shop">
               <Button size="lg" className="mt-6 bg-accent text-accent-foreground hover:bg-accent/90">
                 Browse Collection <ArrowRight className="ml-2 h-5 w-5" />

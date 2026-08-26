@@ -4,11 +4,14 @@ export interface Product {
   description: string;
   price: number;
   image: string;
+  images: string[];
   category: string;
   stock: number;
   featured?: boolean;
   sizes: string[];
   colors: string[];
+  installationFee?: number;
+  date?: string;
 }
 
 export interface CartItem {
@@ -22,11 +25,15 @@ export interface Order {
   id: string;
   items: CartItem[];
   total: number;
-  status: 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Completed' | 'Cancelled';
+  status: 'Pending' | 'Confirmed' | 'Processing' | 'Out for Delivery' | 'Delivered' | 'Cancelled';
+  rating?: number;
+  feedback?: string;
   customerName: string;
   address: string;
   contact: string;
   paymentMethod: string;
+  installationSelected?: boolean;
+  installationFee?: number;
   date: string;
   expectedDeliveryDate: string;
 }

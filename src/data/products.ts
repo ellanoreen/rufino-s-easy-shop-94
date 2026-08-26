@@ -65,10 +65,10 @@ export const products: Product[] = [
 
 export const sampleOrders: Order[] = [
   {
-    id: 'ORD-001', items: [{ product: products[0], quantity: 1, selectedSize: '3-Seater', selectedColor: 'Gray' }, { product: products[5], quantity: 1, selectedSize: 'Large (120cm)', selectedColor: 'White Marble' }], total: 38498, status: 'Completed', customerName: 'Maria Santos', address: '123 Rizal Ave, Manila', contact: '09171234567', paymentMethod: 'GCash', date: '2026-02-01', expectedDeliveryDate: '2026-02-15',
+    id: 'ORD-001', items: [{ product: products[0], quantity: 1, selectedSize: '3-Seater', selectedColor: 'Gray' }, { product: products[5], quantity: 1, selectedSize: 'Large (120cm)', selectedColor: 'White Marble' }], total: 38498, status: 'Delivered', customerName: 'Maria Santos', address: '123 Rizal Ave, Manila', contact: '09171234567', paymentMethod: 'GCash', date: '2026-02-01', expectedDeliveryDate: '2026-02-15',
   },
   {
-    id: 'ORD-002', items: [{ product: products[3], quantity: 2, selectedSize: 'Standard', selectedColor: 'Black' }], total: 24998, status: 'Shipped', customerName: 'Juan Dela Cruz', address: '456 EDSA, Quezon City', contact: '09181234567', paymentMethod: 'Cash on Delivery', date: '2026-02-05', expectedDeliveryDate: '2026-02-19',
+    id: 'ORD-002', items: [{ product: products[3], quantity: 2, selectedSize: 'Standard', selectedColor: 'Black' }], total: 24998, status: 'Out for Delivery', customerName: 'Juan Dela Cruz', address: '456 EDSA, Quezon City', contact: '09181234567', paymentMethod: 'Cash on Delivery', date: '2026-02-05', expectedDeliveryDate: '2026-02-19',
   },
   {
     id: 'ORD-003', items: [{ product: products[1], quantity: 1, selectedSize: '6-Seater', selectedColor: 'Natural Walnut' }, { product: products[7], quantity: 1, selectedSize: 'Set of 4', selectedColor: 'Emerald' }], total: 30998, status: 'Pending', customerName: 'Ana Reyes', address: '789 Ayala Blvd, Makati', contact: '09191234567', paymentMethod: 'Bank Transfer', date: '2026-02-09', expectedDeliveryDate: '2026-02-23',

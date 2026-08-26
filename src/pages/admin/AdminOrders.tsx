@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Eye, Search, Trash2 } from 'lucide-react';
+import { Eye, Search, Trash2, Star, CreditCard, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,17 +7,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Separator } from '@/components/ui/separator';
 import { useOrders } from '@/context/OrderContext';
 import { Order } from '@/types';
 import { toast } from '@/hooks/use-toast';
 
 const statusColor = (status: string) => {
   switch (status) {
-    case 'Completed':
     case 'Delivered': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-    case 'Shipped': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-    case 'Processing': return 'bg-accent/20 text-accent';
-    case 'Cancelled': return 'bg-destructive/20 text-destructive';
+    case 'Out for Delivery': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+    case 'Processing': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
+    case 'Confirmed': return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200';
+    case 'Pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+    case 'Cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
     default: return 'bg-secondary text-secondary-foreground';
   }
 };
@@ -63,10 +65,10 @@ const AdminOrders = () => {
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="Pending">Pending</SelectItem>
+            <SelectItem value="Confirmed">Confirmed</SelectItem>
             <SelectItem value="Processing">Processing</SelectItem>
-            <SelectItem value="Shipped">Shipped</SelectItem>
+            <SelectItem value="Out for Delivery">Out for Delivery</SelectItem>
             <SelectItem value="Delivered">Delivered</SelectItem>
-            <SelectItem value="Completed">Completed</SelectItem>
             <SelectItem value="Cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
@@ -82,6 +84,7 @@ const AdminOrders = () => {
                   <th className="p-4 font-medium text-muted-foreground">Customer</th>
                   <th className="p-4 font-medium text-muted-foreground">Items</th>
                   <th className="p-4 font-medium text-muted-foreground">Total</th>
+                  <th className="p-4 font-medium text-muted-foreground">Payment & Services</th>
                   <th className="p-4 font-medium text-muted-foreground">Status</th>
                   <th className="p-4 font-medium text-muted-foreground">Order Date</th>
                   <th className="p-4 font-medium text-muted-foreground">Est. Delivery</th>
@@ -111,16 +114,30 @@ const AdminOrders = () => {
                     <td className="p-4">{o.items.reduce((s, i) => s + i.quantity, 0)} items</td>
                     <td className="p-4 font-semibold">₱{o.total.toLocaleString()}</td>
                     <td className="p-4">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs text-muted-foreground">{o.paymentMethod}</span>
+
+                        {o.installationSelected ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-medium text-accent border border-accent/20 w-fit">
+                            <Wrench className="h-3 w-3" />
+                            Installation (₱{(o.installationFee || 0).toLocaleString()})
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground">Installation: No</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-4">
                       <Select value={o.status} onValueChange={v => handleStatusUpdate(o.id, v as Order['status'])}>
                         <SelectTrigger className="w-[140px] h-8">
                           <Badge className={statusColor(o.status)}>{o.status}</Badge>
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="Pending">Pending</SelectItem>
+                          <SelectItem value="Confirmed">Confirmed</SelectItem>
                           <SelectItem value="Processing">Processing</SelectItem>
-                          <SelectItem value="Shipped">Shipped</SelectItem>
+                          <SelectItem value="Out for Delivery">Out for Delivery</SelectItem>
                           <SelectItem value="Delivered">Delivered</SelectItem>
-                          <SelectItem value="Completed">Completed</SelectItem>
                           <SelectItem value="Cancelled">Cancelled</SelectItem>
                         </SelectContent>
                       </Select>
@@ -158,7 +175,7 @@ const AdminOrders = () => {
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">No orders found.</td></tr>
+                  <tr><td colSpan={9} className="p-8 text-center text-muted-foreground">No orders found.</td></tr>
                 )}
               </tbody>
             </table>
@@ -178,7 +195,20 @@ const AdminOrders = () => {
                   <div><p className="text-muted-foreground">Customer</p><p className="font-medium">{viewingOrder.customerName}</p></div>
                   <div><p className="text-muted-foreground">Contact</p><p className="font-medium">{viewingOrder.contact}</p></div>
                   <div className="col-span-2"><p className="text-muted-foreground">Address</p><p className="font-medium">{viewingOrder.address}</p></div>
-                  <div><p className="text-muted-foreground">Payment</p><p className="font-medium">{viewingOrder.paymentMethod}</p></div>
+                  <div>
+                    <p className="text-muted-foreground">Payment</p>
+                    <p className="font-medium">{viewingOrder.paymentMethod}</p>
+
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Installation Service</p>
+                    <p className="font-medium flex items-center gap-1">
+                      <Wrench className="h-3.5 w-3.5 text-accent" />
+                      {viewingOrder.installationSelected
+                        ? `Yes (₱${(viewingOrder.installationFee || 0).toLocaleString()})`
+                        : 'No'}
+                    </p>
+                  </div>
                   <div><p className="text-muted-foreground">Order Date</p><p className="font-medium">{viewingOrder.date}</p></div>
                   <div><p className="text-muted-foreground">Expected Delivery</p><p className="font-medium">{viewingOrder.expectedDeliveryDate}</p></div>
                   <div><p className="text-muted-foreground">Status</p><Badge className={statusColor(viewingOrder.status)}>{viewingOrder.status}</Badge></div>
@@ -208,6 +238,20 @@ const AdminOrders = () => {
                   <span className="font-medium">Total</span>
                   <span className="text-xl font-bold">₱{viewingOrder.total.toLocaleString()}</span>
                 </div>
+
+                {viewingOrder.rating && (
+                  <div className="border-t pt-4 mt-4">
+                    <p className="text-sm font-medium mb-2">Customer Feedback</p>
+                    <div className="flex items-center gap-1 mb-2">
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <Star key={star} className={`h-4 w-4 ${star <= viewingOrder.rating! ? 'fill-yellow-400 text-yellow-400' : 'text-slate-200'}`} />
+                      ))}
+                    </div>
+                    {viewingOrder.feedback && (
+                      <p className="text-sm text-foreground bg-muted p-3 rounded-md italic">"{viewingOrder.feedback}"</p>
+                    )}
+                  </div>
+                )}
               </div>
             </>
           )}

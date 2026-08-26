@@ -10,13 +10,25 @@ interface ProductContextType {
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
+const normalizeProduct = (p: any): Product => {
+  const images = p.images?.length > 0 ? p.images : (p.image ? [p.image] : []);
+  return {
+    ...p,
+    image: p.image || images[0] || '',
+    images,
+    price: Number(p.price),
+    stock: Number(p.stock),
+    installationFee: Number(p.installation_fee ?? p.installationFee ?? 0),
+  };
+};
+
 export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     fetch('/api/products')
       .then(res => res.json())
-      .then(data => setProducts(data))
+      .then((data: any[]) => setProducts(data.map(normalizeProduct)))
       .catch(err => console.error('Failed to fetch products:', err));
   }, []);
 
@@ -42,7 +54,7 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
         throw new Error('Server returned an invalid or empty response.');
       }
 
-      setProducts(prev => [...prev, data]);
+      setProducts(prev => [...prev, normalizeProduct(data)]);
       return true;
     } catch (err: any) {
       console.error('Failed to add product:', err);
@@ -72,7 +84,7 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
         throw new Error('Server returned an invalid or empty response.');
       }
 
-      setProducts(prev => prev.map(p => p.id === product.id ? data : p));
+      setProducts(prev => prev.map(p => p.id === product.id ? normalizeProduct(data) : p));
       return true;
     } catch (err: any) {
       console.error('Failed to update product:', err);

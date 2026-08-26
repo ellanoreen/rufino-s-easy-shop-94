@@ -15,6 +15,7 @@ const ProductDetail = () => {
   const { addToCart } = useCart();
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [selectedColor, setSelectedColor] = useState<string>('');
+  const [selectedImageIdx, setSelectedImageIdx] = useState(0);
 
   if (!product) {
     return (
@@ -39,6 +40,8 @@ const ProductDetail = () => {
 
   const related = products.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
 
+  const currentImage = (product.images && product.images.length > 0) ? product.images[selectedImageIdx] : product.image;
+
   return (
     <div className="container mx-auto px-4 py-8">
       <Link to="/shop">
@@ -46,14 +49,30 @@ const ProductDetail = () => {
       </Link>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        <div className={`relative aspect-square overflow-hidden rounded-lg ${isSoldOut ? 'opacity-50 grayscale-[50%]' : ''}`}>
-          <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
-          {isSoldOut && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/80">
-              <div className="flex flex-col items-center gap-2 text-destructive">
-                <AlertTriangle className="h-12 w-12" />
-                <span className="text-xl font-bold">SOLD OUT</span>
+        <div className="flex flex-col gap-4">
+          <div className={`relative aspect-square overflow-hidden rounded-lg ${isSoldOut ? 'opacity-50 grayscale-[50%]' : ''}`}>
+            <img src={currentImage} alt={product.name} className="h-full w-full object-cover" />
+            {isSoldOut && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/80">
+                <div className="flex flex-col items-center gap-2 text-destructive">
+                  <AlertTriangle className="h-12 w-12" />
+                  <span className="text-xl font-bold">SOLD OUT</span>
+                </div>
               </div>
+            )}
+          </div>
+          
+          {(product.images && product.images.length > 1) && (
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-muted">
+              {product.images.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setSelectedImageIdx(idx)}
+                  className={`relative flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border-2 transition-all ${idx === selectedImageIdx ? 'border-primary ring-2 ring-primary/50' : 'border-transparent hover:border-primary/50'}`}
+                >
+                  <img src={img} alt={`${product.name} - ${idx + 1}`} className="w-full h-full object-cover" />
+                </button>
+              ))}
             </div>
           )}
         </div>

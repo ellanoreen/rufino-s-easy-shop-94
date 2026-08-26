@@ -4,9 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useCart } from '@/context/CartContext';
+import { useSettings } from '@/context/SettingsContext';
 
 const Cart = () => {
   const { items, removeFromCart, updateQuantity, total } = useCart();
+  const { installationFee } = useSettings();
+  const grandTotal = total + installationFee;
 
   if (items.length === 0) {
     return (
@@ -69,11 +72,17 @@ const Cart = () => {
               <span className="text-muted-foreground">Shipping</span>
               <span className="text-success">Free</span>
             </div>
+            {installationFee > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Installation Fee</span>
+                <span>₱{installationFee.toLocaleString()}</span>
+              </div>
+            )}
           </div>
           <Separator className="my-4" />
           <div className="flex justify-between text-lg font-bold">
             <span>Total</span>
-            <span>₱{total.toLocaleString()}</span>
+            <span>₱{grandTotal.toLocaleString()}</span>
           </div>
           <Link to="/checkout">
             <Button className="mt-6 w-full" size="lg">Proceed to Checkout</Button>

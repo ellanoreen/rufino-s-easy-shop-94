@@ -10,12 +10,24 @@ export const initializeDB = async () => {
         description TEXT NOT NULL,
         price NUMERIC NOT NULL,
         image TEXT NOT NULL,
+        images TEXT[] DEFAULT '{}',
         category TEXT NOT NULL,
         stock INTEGER NOT NULL DEFAULT 0,
         featured BOOLEAN DEFAULT false,
         sizes TEXT[] DEFAULT '{}',
-        colors TEXT[] DEFAULT '{}'
+        colors TEXT[] DEFAULT '{}',
+        date TEXT NOT NULL DEFAULT to_char(CURRENT_DATE, 'YYYY-MM-DD')
       );
+    `);
+
+    // Migration to add the 'date' column if it doesn't exist
+    await pool.query(`
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS date TEXT NOT NULL DEFAULT to_char(CURRENT_DATE, 'YYYY-MM-DD');
+    `);
+
+    // Migration to add the 'images' column if it doesn't exist
+    await pool.query(`
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS images TEXT[] DEFAULT '{}';
     `);
 
     await pool.query(`
@@ -31,6 +43,47 @@ export const initializeDB = async () => {
         date TEXT NOT NULL,
         "expectedDeliveryDate" TEXT NOT NULL
       );
+    `);
+
+    // Settings table for store configuration (installation fee, etc.)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      );
+    `);
+
+    // Seed default installation fee if not already set
+    await pool.query(`
+      INSERT INTO settings (key, value)
+      VALUES ('installation_fee', '0')
+      ON CONFLICT (key) DO NOTHING;
+    `);
+
+    // Migration: add installation_fee column to products if missing
+    await pool.query(`
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS installation_fee NUMERIC DEFAULT 0;
+    `);
+
+    // Migration: add rating and feedback columns if missing
+    await pool.query(`
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS rating INTEGER;
+    `);
+    await pool.query(`
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS feedback TEXT;
+    `);
+
+    // Migration: add installment_plan column if missing
+    await pool.query(`
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS installment_plan JSONB DEFAULT NULL;
+    `);
+
+    // Migration: add installation_selected and installation_fee columns to orders if missing
+    await pool.query(`
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS installation_selected BOOLEAN DEFAULT false;
+    `);
+    await pool.query(`
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS installation_fee NUMERIC DEFAULT 0;
     `);
 
     console.log('Database initialized successfully.');

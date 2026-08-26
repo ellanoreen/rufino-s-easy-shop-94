@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingCart, LogOut, Menu, X, Warehouse, FileText } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, LogOut, Menu, X, Warehouse, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { useOrders } from '@/context/OrderContext';
@@ -8,7 +8,6 @@ import { useState } from 'react';
 
 const navItems = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/admin/products', label: 'Products', icon: Package },
   { to: '/admin/inventory', label: 'Inventory', icon: Warehouse },
   { to: '/admin/orders', label: 'Orders', icon: ShoppingCart },
   { to: '/admin/reports', label: 'Reports', icon: FileText },
