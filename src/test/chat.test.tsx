@@ -244,6 +244,16 @@ describe('Chat & Messages System Integration', () => {
     );
 
     await waitFor(() => {
+      // Admin sidebar navigation labels
+      expect(screen.getByRole('button', { name: /Dashboard/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Inventory/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Orders/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Reports/i })).toBeInTheDocument();
+
+      // No button should have text label "Messages"
+      const adminTextButtons = screen.queryAllByRole('button', { name: /^Messages$/i });
+      expect(adminTextButtons.length).toBe(0);
+
       const adminMessageLinks = screen.getAllByTitle(/^Messages/i);
       expect(adminMessageLinks.length).toBeGreaterThanOrEqual(1);
       expect(adminMessageLinks[0]).toHaveAttribute('href', '/admin/messages');

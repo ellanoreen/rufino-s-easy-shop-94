@@ -50,23 +50,48 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </Link>
         </div>
         <nav className="flex-1 space-y-1 p-4">
-          {navItems.map(item => (
-            <Link key={item.to} to={item.to}>
-              <Button
-                variant={isActive(item.to) ? 'secondary' : 'ghost'}
-                className="w-full justify-start gap-3"
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-                {item.label === 'Orders' && pendingCount > 0 && (
-                  <Badge className="ml-auto bg-accent text-accent-foreground text-xs">{pendingCount}</Badge>
-                )}
-                {item.label === 'Messages' && unreadCount > 0 && (
-                  <Badge className="ml-auto bg-blue-600 text-white text-xs">{unreadCount}</Badge>
-                )}
-              </Button>
-            </Link>
-          ))}
+          {navItems.map(item => {
+            const isMessages = item.to === '/admin/messages';
+            if (isMessages) {
+              return (
+                <TooltipProvider key={item.to}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link to={item.to} title="Messages" aria-label="Messages">
+                        <Button
+                          variant={isActive(item.to) ? 'secondary' : 'ghost'}
+                          className="w-full justify-start gap-3 relative"
+                        >
+                          <item.icon className="h-4 w-4" />
+                          {unreadCount > 0 && (
+                            <Badge className="ml-auto bg-blue-600 text-white text-xs">{unreadCount}</Badge>
+                          )}
+                        </Button>
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p>Messages</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              );
+            }
+
+            return (
+              <Link key={item.to} to={item.to}>
+                <Button
+                  variant={isActive(item.to) ? 'secondary' : 'ghost'}
+                  className="w-full justify-start gap-3"
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                  {item.label === 'Orders' && pendingCount > 0 && (
+                    <Badge className="ml-auto bg-accent text-accent-foreground text-xs">{pendingCount}</Badge>
+                  )}
+                </Button>
+              </Link>
+            );
+          })}
         </nav>
         <div className="border-t p-4 space-y-2">
           <Button variant="ghost" className="w-full justify-start gap-3 text-destructive hover:text-destructive" onClick={handleLogout}>
@@ -140,19 +165,32 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
         {mobileOpen && (
           <div className="border-b bg-card p-4 lg:hidden space-y-1">
-            {navItems.map(item => (
-              <Link key={item.to} to={item.to} onClick={() => setMobileOpen(false)}>
-                <Button variant={isActive(item.to) ? 'secondary' : 'ghost'} className="w-full justify-start gap-3">
-                  <item.icon className="h-4 w-4" />{item.label}
-                  {item.label === 'Orders' && pendingCount > 0 && (
-                    <Badge className="ml-auto bg-accent text-accent-foreground text-xs">{pendingCount}</Badge>
-                  )}
-                  {item.label === 'Messages' && unreadCount > 0 && (
-                    <Badge className="ml-auto bg-red-600 text-white text-xs">{unreadCount}</Badge>
-                  )}
-                </Button>
-              </Link>
-            ))}
+            {navItems.map(item => {
+              const isMessages = item.to === '/admin/messages';
+              if (isMessages) {
+                return (
+                  <Link key={item.to} to={item.to} onClick={() => setMobileOpen(false)} title="Messages" aria-label="Messages">
+                    <Button variant={isActive(item.to) ? 'secondary' : 'ghost'} className="w-full justify-start gap-3 relative">
+                      <item.icon className="h-4 w-4" />
+                      {unreadCount > 0 && (
+                        <Badge className="ml-auto bg-red-600 text-white text-xs">{unreadCount}</Badge>
+                      )}
+                    </Button>
+                  </Link>
+                );
+              }
+
+              return (
+                <Link key={item.to} to={item.to} onClick={() => setMobileOpen(false)}>
+                  <Button variant={isActive(item.to) ? 'secondary' : 'ghost'} className="w-full justify-start gap-3">
+                    <item.icon className="h-4 w-4" />{item.label}
+                    {item.label === 'Orders' && pendingCount > 0 && (
+                      <Badge className="ml-auto bg-accent text-accent-foreground text-xs">{pendingCount}</Badge>
+                    )}
+                  </Button>
+                </Link>
+              );
+            })}
             <Button variant="ghost" className="w-full justify-start gap-3 text-destructive" onClick={handleLogout}>
               <LogOut className="h-4 w-4" />Logout
             </Button>
