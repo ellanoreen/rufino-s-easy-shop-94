@@ -259,6 +259,11 @@ describe('Chat & Messages System Integration', () => {
       const adminMessageLinks = screen.getAllByTitle(/^Messages/i);
       expect(adminMessageLinks.length).toBeGreaterThanOrEqual(1);
       expect(adminMessageLinks[0]).toHaveAttribute('href', '/admin/messages');
+
+      // Ensure sidebar (aside) does not contain messages link
+      const aside = document.querySelector('aside');
+      expect(aside).toBeInTheDocument();
+      expect(aside?.querySelector('a[href="/admin/messages"]')).toBeNull();
     });
   });
 });
