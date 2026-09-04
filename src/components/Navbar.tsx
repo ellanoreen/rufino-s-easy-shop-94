@@ -1,11 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, User, Menu, X, LayoutDashboard, MessageSquare } from 'lucide-react';
+import { ShoppingCart, Menu, X, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useChat } from '@/context/ChatContext';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const Navbar = () => {
   const { itemCount } = useCart();
@@ -14,7 +15,7 @@ const Navbar = () => {
   const [open, setOpen] = useState(false);
   const location = useLocation();
 
-  // Admin should NOT see shopping links; Customer should NOT see admin links
+  // Navigation links: Home, Shop, Cart, Orders (without text "Messages" label)
   const links = isAdmin
     ? [{ to: '/admin', label: 'Dashboard' }]
     : [
@@ -24,7 +25,6 @@ const Navbar = () => {
         ...(user
           ? [
               { to: '/orders', label: 'Orders' },
-              { to: '/messages', label: 'Messages', badge: unreadCount },
             ]
           : []),
       ];
@@ -42,49 +42,63 @@ const Navbar = () => {
           />
         </Link>
 
-        {/* Desktop */}
+        {/* Desktop Navigation Links */}
         <div className="hidden items-center gap-1 md:flex">
           {links.map(l => (
             <Link key={l.to} to={l.to}>
               <Button variant={isActive(l.to) ? 'secondary' : 'ghost'} size="sm" className="relative">
                 {l.label}
-                {Boolean(l.badge && l.badge > 0) && (
-                  <span className="ml-1.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue-600 px-1.5 text-[10px] font-bold text-white">
-                    {l.badge}
-                  </span>
-                )}
               </Button>
             </Link>
           ))}
         </div>
 
+        {/* Desktop Icons & Profile */}
         <div className="hidden items-center gap-2 md:flex">
-          {/* Message icon for customers */}
+          {/* Message/Chat icon with tooltip for customers */}
           {!isAdmin && (
-            <Link to="/messages" className="relative" title="Messages & Customer Support">
-              <Button variant="ghost" size="icon" className="relative">
-                <MessageSquare className="h-5 w-5" />
-                {unreadCount > 0 && (
-                  <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-white p-0 text-xs font-bold shadow-sm animate-in zoom-in">
-                    {unreadCount}
-                  </Badge>
-                )}
-              </Button>
-            </Link>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link to="/messages" className="relative" title="Messages" aria-label="Messages">
+                    <Button variant="ghost" size="icon" className="relative">
+                      <MessageSquare className="h-5 w-5" />
+                      {unreadCount > 0 && (
+                        <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-white p-0 text-xs font-bold shadow-sm animate-in zoom-in">
+                          {unreadCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Messages</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
 
           {/* Cart icon only for customers */}
           {!isAdmin && (
-            <Link to="/cart" className="relative" title="Shopping Cart">
-              <Button variant="ghost" size="icon" className="relative">
-                <ShoppingCart className="h-5 w-5" />
-                {itemCount > 0 && (
-                  <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent p-0 text-xs text-accent-foreground">
-                    {itemCount}
-                  </Badge>
-                )}
-              </Button>
-            </Link>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link to="/cart" className="relative" title="Shopping Cart" aria-label="Shopping Cart">
+                    <Button variant="ghost" size="icon" className="relative">
+                      <ShoppingCart className="h-5 w-5" />
+                      {itemCount > 0 && (
+                        <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent p-0 text-xs text-accent-foreground">
+                          {itemCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Shopping Cart</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
 
           {user ? (

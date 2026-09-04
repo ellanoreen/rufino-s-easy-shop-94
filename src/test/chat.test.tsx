@@ -33,6 +33,15 @@ const TestChatConsumer = () => {
   );
 };
 
+// Helper component to log in as admin for AdminLayout test
+const AdminLoginWrapper = ({ children }: { children: React.ReactNode }) => {
+  const { login } = useAuth();
+  React.useEffect(() => {
+    login('admin@rufinos.com', 'admin123');
+  }, [login]);
+  return <>{children}</>;
+};
+
 describe('Chat & Messages System Integration', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -161,7 +170,7 @@ describe('Chat & Messages System Integration', () => {
     expect(screen.getByRole('button', { name: /Unread/i })).toBeInTheDocument();
   });
 
-  it('renders visible Message icons with unread badge in Navbar and AdminLayout', async () => {
+  it('renders visible Message icons with unread badge and no text label Messages in Navbar and AdminLayout', async () => {
     global.fetch = vi.fn().mockImplementation((url: string) => {
       if (url === '/api/messages') {
         return Promise.resolve({
@@ -197,13 +206,23 @@ describe('Chat & Messages System Integration', () => {
       </BrowserRouter>
     );
 
-    // Message icons in customer navbar
-    const messageLinks = screen.getAllByTitle(/Messages/i);
+    // Standard nav items should exist
+    expect(screen.getByRole('button', { name: 'Home' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Shop' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cart' })).toBeInTheDocument();
+
+    // The text label "Messages" should NOT be rendered as a navigation button link
+    const textNavButtons = screen.queryAllByRole('button', { name: /^Messages$/i });
+    expect(textNavButtons.length).toBe(0);
+
+    // Message icons in customer navbar with title "Messages" and href "/messages"
+    const messageLinks = screen.getAllByTitle(/^Messages/i);
     expect(messageLinks.length).toBeGreaterThanOrEqual(1);
+    expect(messageLinks[0]).toHaveAttribute('href', '/messages');
 
     unmount();
 
-    // Test Admin Layout
+    // Test Admin Layout with logged in Admin
     render(
       <BrowserRouter>
         <AuthProvider>
@@ -211,9 +230,11 @@ describe('Chat & Messages System Integration', () => {
             <OrderProvider>
               <CartProvider>
                 <ChatProvider>
-                  <AdminLayout>
-                    <div>Admin Content</div>
-                  </AdminLayout>
+                  <AdminLoginWrapper>
+                    <AdminLayout>
+                      <div>Admin Content</div>
+                    </AdminLayout>
+                  </AdminLoginWrapper>
                 </ChatProvider>
               </CartProvider>
             </OrderProvider>
@@ -221,5 +242,11 @@ describe('Chat & Messages System Integration', () => {
         </AuthProvider>
       </BrowserRouter>
     );
+
+    await waitFor(() => {
+      const adminMessageLinks = screen.getAllByTitle(/^Messages/i);
+      expect(adminMessageLinks.length).toBeGreaterThanOrEqual(1);
+      expect(adminMessageLinks[0]).toHaveAttribute('href', '/admin/messages');
+    });
   });
 });
