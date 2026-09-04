@@ -76,8 +76,32 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </div>
       </aside>
 
-      {/* Mobile Header */}
+      {/* Main Content Area */}
       <div className="flex flex-1 flex-col">
+        {/* Desktop Header */}
+        <header className="hidden lg:flex h-16 items-center justify-between border-b bg-card px-8">
+          <div className="text-sm font-medium text-muted-foreground">
+            Rufino's Furniture <span className="text-foreground font-semibold">Admin Workspace</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link to="/admin/messages" className="relative" title="Customer Messages">
+              <Button variant="ghost" size="icon" className="relative">
+                <MessageSquare className="h-5 w-5 text-slate-700" />
+                {unreadCount > 0 && (
+                  <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-white p-0 text-xs font-bold shadow-sm animate-in zoom-in">
+                    {unreadCount}
+                  </Badge>
+                )}
+              </Button>
+            </Link>
+            <div className="h-4 w-px bg-border"></div>
+            <div className="text-xs text-muted-foreground">
+              Signed in as <span className="font-semibold text-foreground">{user.name}</span>
+            </div>
+          </div>
+        </header>
+
+        {/* Mobile Header */}
         <header className="flex h-14 items-center justify-between border-b bg-card px-4 lg:hidden">
           <Link to="/admin" className="flex items-center">
             <img
@@ -86,9 +110,21 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               className="h-9 w-auto object-contain"
             />
           </Link>
-          <Button variant="ghost" size="icon" onClick={() => setMobileOpen(!mobileOpen)}>
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
+          <div className="flex items-center gap-1">
+            <Link to="/admin/messages" className="relative" title="Customer Messages">
+              <Button variant="ghost" size="icon" className="relative">
+                <MessageSquare className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-white p-0 text-xs font-bold shadow-sm">
+                    {unreadCount}
+                  </Badge>
+                )}
+              </Button>
+            </Link>
+            <Button variant="ghost" size="icon" onClick={() => setMobileOpen(!mobileOpen)}>
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+          </div>
         </header>
 
         {mobileOpen && (
@@ -101,7 +137,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     <Badge className="ml-auto bg-accent text-accent-foreground text-xs">{pendingCount}</Badge>
                   )}
                   {item.label === 'Messages' && unreadCount > 0 && (
-                    <Badge className="ml-auto bg-blue-600 text-white text-xs">{unreadCount}</Badge>
+                    <Badge className="ml-auto bg-red-600 text-white text-xs">{unreadCount}</Badge>
                   )}
                 </Button>
               </Link>

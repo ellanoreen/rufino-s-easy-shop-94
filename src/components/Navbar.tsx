@@ -59,10 +59,24 @@ const Navbar = () => {
         </div>
 
         <div className="hidden items-center gap-2 md:flex">
+          {/* Message icon for customers */}
+          {!isAdmin && (
+            <Link to="/messages" className="relative" title="Messages & Customer Support">
+              <Button variant="ghost" size="icon" className="relative">
+                <MessageSquare className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-white p-0 text-xs font-bold shadow-sm animate-in zoom-in">
+                    {unreadCount}
+                  </Badge>
+                )}
+              </Button>
+            </Link>
+          )}
+
           {/* Cart icon only for customers */}
           {!isAdmin && (
-            <Link to="/cart" className="relative">
-              <Button variant="ghost" size="icon">
+            <Link to="/cart" className="relative" title="Shopping Cart">
+              <Button variant="ghost" size="icon" className="relative">
                 <ShoppingCart className="h-5 w-5" />
                 {itemCount > 0 && (
                   <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent p-0 text-xs text-accent-foreground">
@@ -72,6 +86,7 @@ const Navbar = () => {
               </Button>
             </Link>
           )}
+
           {user ? (
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">{user.name}</span>
@@ -82,10 +97,36 @@ const Navbar = () => {
           )}
         </div>
 
-        {/* Mobile toggle */}
-        <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(!open)}>
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </Button>
+        {/* Mobile icons & toggle */}
+        <div className="flex items-center gap-1 md:hidden">
+          {!isAdmin && (
+            <>
+              <Link to="/messages" className="relative" title="Messages">
+                <Button variant="ghost" size="icon" className="relative">
+                  <MessageSquare className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-white p-0 text-xs font-bold shadow-sm">
+                      {unreadCount}
+                    </Badge>
+                  )}
+                </Button>
+              </Link>
+              <Link to="/cart" className="relative" title="Shopping Cart">
+                <Button variant="ghost" size="icon" className="relative">
+                  <ShoppingCart className="h-5 w-5" />
+                  {itemCount > 0 && (
+                    <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent p-0 text-xs text-accent-foreground">
+                      {itemCount}
+                    </Badge>
+                  )}
+                </Button>
+              </Link>
+            </>
+          )}
+          <Button variant="ghost" size="icon" onClick={() => setOpen(!open)}>
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
+        </div>
       </div>
 
       {/* Mobile menu */}

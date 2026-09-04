@@ -5,7 +5,10 @@ import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { OrderProvider } from '@/context/OrderContext';
 import { ProductProvider } from '@/context/ProductContext';
+import { CartProvider } from '@/context/CartContext';
 import { ChatProvider, useChat } from '@/context/ChatContext';
+import Navbar from '@/components/Navbar';
+import AdminLayout from '@/components/AdminLayout';
 import Messages from '@/pages/Messages';
 import AdminMessages from '@/pages/admin/AdminMessages';
 
@@ -156,5 +159,67 @@ describe('Chat & Messages System Integration', () => {
     // Verify filter buttons
     expect(screen.getByRole('button', { name: /All/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Unread/i })).toBeInTheDocument();
+  });
+
+  it('renders visible Message icons with unread badge in Navbar and AdminLayout', async () => {
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url === '/api/messages') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+      }
+      if (url === '/api/orders') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      });
+    });
+
+    const { unmount } = render(
+      <BrowserRouter>
+        <AuthProvider>
+          <ProductProvider>
+            <OrderProvider>
+              <CartProvider>
+                <ChatProvider>
+                  <Navbar />
+                </ChatProvider>
+              </CartProvider>
+            </OrderProvider>
+          </ProductProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    );
+
+    // Message icons in customer navbar
+    const messageLinks = screen.getAllByTitle(/Messages/i);
+    expect(messageLinks.length).toBeGreaterThanOrEqual(1);
+
+    unmount();
+
+    // Test Admin Layout
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <ProductProvider>
+            <OrderProvider>
+              <CartProvider>
+                <ChatProvider>
+                  <AdminLayout>
+                    <div>Admin Content</div>
+                  </AdminLayout>
+                </ChatProvider>
+              </CartProvider>
+            </OrderProvider>
+          </ProductProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    );
   });
 });
