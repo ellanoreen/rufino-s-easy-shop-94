@@ -219,6 +219,57 @@ app.put('/api/settings/:key', async (req, res) => {
   }
 });
 
+// --- Messages / Chat Routes ---
+app.get('/api/messages', async (req, res) => {
+  try {
+    const { customerId } = req.query;
+    let result;
+    if (customerId) {
+      result = await query(
+        `SELECT * FROM messages WHERE "customerId" = $1 ORDER BY "timestamp" ASC`,
+        [customerId]
+      );
+    } else {
+      result = await query('SELECT * FROM messages ORDER BY "timestamp" ASC');
+    }
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/messages', async (req, res) => {
+  try {
+    const { senderId, senderName, senderRole, customerId, customerName, customerEmail, orderId, content } = req.body;
+    const timestamp = new Date().toISOString();
+    const result = await query(
+      `INSERT INTO messages ("senderId", "senderName", "senderRole", "customerId", "customerName", "customerEmail", "orderId", content, "timestamp", "isRead")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false) RETURNING *`,
+      [senderId, senderName, senderRole, customerId, customerName, customerEmail || null, orderId || null, content, timestamp]
+    );
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/messages/read', async (req, res) => {
+  try {
+    const { customerId, readerRole } = req.body;
+    if (!customerId) {
+      return res.status(400).json({ error: 'customerId is required' });
+    }
+    const targetSenderRole = readerRole === 'admin' ? 'customer' : 'admin';
+    const result = await query(
+      `UPDATE messages SET "isRead" = true WHERE "customerId" = $1 AND "senderRole" = $2 RETURNING *`,
+      [customerId, targetSenderRole]
+    );
+    res.json({ updatedCount: result.rowCount, messages: result.rows });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // The "catchall" handler: for any request that doesn't
 // match one above, send back React's index.html file.
 app.get(/^(.*)$/, (req, res) => {

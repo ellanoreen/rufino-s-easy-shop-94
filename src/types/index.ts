@@ -49,4 +49,27 @@ export interface User {
   role: 'customer' | 'admin';
 }
 
+export interface Message {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderRole: 'customer' | 'admin';
+  customerId: string;
+  customerName: string;
+  customerEmail?: string;
+  orderId?: string;
+  content: string;
+  timestamp: string;
+  isRead: boolean;
+}
+
+export interface ConversationSummary {
+  customerId: string;
+  customerName: string;
+  customerEmail?: string;
+  lastMessage: Message;
+  unreadCount: number;
+  orderId?: string;
+}
+
 export type Category = 'All' | 'Living Room' | 'Bedroom' | 'Dining' | 'Office' | 'Outdoor';

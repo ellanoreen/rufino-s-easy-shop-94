@@ -1,14 +1,16 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, User, Menu, X, LayoutDashboard } from 'lucide-react';
+import { ShoppingCart, User, Menu, X, LayoutDashboard, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
+import { useChat } from '@/context/ChatContext';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 
 const Navbar = () => {
   const { itemCount } = useCart();
   const { user, logout, isAdmin } = useAuth();
+  const { unreadCount } = useChat();
   const [open, setOpen] = useState(false);
   const location = useLocation();
 
@@ -19,7 +21,12 @@ const Navbar = () => {
         { to: '/', label: 'Home' },
         { to: '/shop', label: 'Shop' },
         { to: '/cart', label: 'Cart' },
-        ...(user ? [{ to: '/orders', label: 'Orders' }] : []),
+        ...(user
+          ? [
+              { to: '/orders', label: 'Orders' },
+              { to: '/messages', label: 'Messages', badge: unreadCount },
+            ]
+          : []),
       ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -39,7 +46,14 @@ const Navbar = () => {
         <div className="hidden items-center gap-1 md:flex">
           {links.map(l => (
             <Link key={l.to} to={l.to}>
-              <Button variant={isActive(l.to) ? 'secondary' : 'ghost'} size="sm">{l.label}</Button>
+              <Button variant={isActive(l.to) ? 'secondary' : 'ghost'} size="sm" className="relative">
+                {l.label}
+                {Boolean(l.badge && l.badge > 0) && (
+                  <span className="ml-1.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue-600 px-1.5 text-[10px] font-bold text-white">
+                    {l.badge}
+                  </span>
+                )}
+              </Button>
             </Link>
           ))}
         </div>
@@ -79,7 +93,14 @@ const Navbar = () => {
         <div className="border-t bg-card px-4 pb-4 pt-2 md:hidden">
           {links.map(l => (
             <Link key={l.to} to={l.to} onClick={() => setOpen(false)}>
-              <Button variant="ghost" className="w-full justify-start">{l.label}</Button>
+              <Button variant={isActive(l.to) ? 'secondary' : 'ghost'} className="w-full justify-start relative">
+                {l.label}
+                {Boolean(l.badge && l.badge > 0) && (
+                  <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue-600 px-1.5 text-[10px] font-bold text-white">
+                    {l.badge}
+                  </span>
+                )}
+              </Button>
             </Link>
           ))}
           {user ? (

@@ -1,9 +1,10 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Truck, Star, Wrench } from 'lucide-react';
+import { Truck, Star, Wrench, MessageSquare } from 'lucide-react';
 import { useOrders } from '@/context/OrderContext';
 import { Order } from '@/types';
 
@@ -134,10 +135,16 @@ const Orders = () => {
                   </span>
                 )}
               </div>
-              <span className="font-bold">Total: ₱{order.total.toLocaleString()}</span>
+              <div className="flex items-center gap-3">
+                <Link to={`/messages?orderId=${order.id}`}>
+                  <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+                    <MessageSquare className="h-3.5 w-3.5 text-primary" />
+                    Chat about Order
+                  </Button>
+                </Link>
+                <span className="font-bold">Total: ₱{order.total.toLocaleString()}</span>
+              </div>
             </div>
-
-
 
             {order.status === 'Delivered' && (
               <OrderFeedbackForm order={order} submitFeedback={submitFeedback} />

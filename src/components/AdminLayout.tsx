@@ -1,8 +1,9 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, LogOut, Menu, X, Warehouse, FileText } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, LogOut, Menu, X, Warehouse, FileText, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { useOrders } from '@/context/OrderContext';
+import { useChat } from '@/context/ChatContext';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
 
@@ -10,6 +11,7 @@ const navItems = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/admin/inventory', label: 'Inventory', icon: Warehouse },
   { to: '/admin/orders', label: 'Orders', icon: ShoppingCart },
+  { to: '/admin/messages', label: 'Messages', icon: MessageSquare },
   { to: '/admin/reports', label: 'Reports', icon: FileText },
 ];
 
@@ -19,6 +21,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { orders } = useOrders();
+  const { unreadCount } = useChat();
 
   const pendingCount = orders.filter(o => o.status === 'Pending').length;
 
@@ -56,6 +59,9 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 {item.label === 'Orders' && pendingCount > 0 && (
                   <Badge className="ml-auto bg-accent text-accent-foreground text-xs">{pendingCount}</Badge>
                 )}
+                {item.label === 'Messages' && unreadCount > 0 && (
+                  <Badge className="ml-auto bg-blue-600 text-white text-xs">{unreadCount}</Badge>
+                )}
               </Button>
             </Link>
           ))}
@@ -91,6 +97,12 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <Link key={item.to} to={item.to} onClick={() => setMobileOpen(false)}>
                 <Button variant={isActive(item.to) ? 'secondary' : 'ghost'} className="w-full justify-start gap-3">
                   <item.icon className="h-4 w-4" />{item.label}
+                  {item.label === 'Orders' && pendingCount > 0 && (
+                    <Badge className="ml-auto bg-accent text-accent-foreground text-xs">{pendingCount}</Badge>
+                  )}
+                  {item.label === 'Messages' && unreadCount > 0 && (
+                    <Badge className="ml-auto bg-blue-600 text-white text-xs">{unreadCount}</Badge>
+                  )}
                 </Button>
               </Link>
             ))}

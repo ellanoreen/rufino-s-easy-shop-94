@@ -100,6 +100,23 @@ export const initializeDB = async () => {
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS deleted_at TEXT DEFAULT NULL;
     `);
 
+    // Create messages table for customer-to-admin chat
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS messages (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "senderId" TEXT NOT NULL,
+        "senderName" TEXT NOT NULL,
+        "senderRole" TEXT NOT NULL,
+        "customerId" TEXT NOT NULL,
+        "customerName" TEXT NOT NULL,
+        "customerEmail" TEXT,
+        "orderId" TEXT,
+        content TEXT NOT NULL,
+        "timestamp" TEXT NOT NULL DEFAULT to_char(CURRENT_TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS'),
+        "isRead" BOOLEAN NOT NULL DEFAULT false
+      );
+    `);
+
     console.log('Database initialized successfully.');
   } catch (error) {
     console.error('Failed to initialize database:', error);

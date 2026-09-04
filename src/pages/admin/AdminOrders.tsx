@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Eye, Search, Trash2, Star, CreditCard, Wrench } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Eye, Search, Trash2, Star, CreditCard, Wrench, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -143,7 +144,12 @@ const AdminOrders = () => {
                     <td className="p-4 text-muted-foreground">{o.expectedDeliveryDate}</td>
                     <td className="p-4">
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewingOrder(o)}>
+                        <Link to={`/admin/messages?orderId=${o.id}`}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700" title="Chat with Customer">
+                            <MessageSquare className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewingOrder(o)} title="View Order Details">
                           <Eye className="h-4 w-4" />
                         </Button>
                         <AlertDialog>
@@ -234,6 +240,15 @@ const AdminOrders = () => {
                 <div className="flex items-center justify-between border-t pt-4">
                   <span className="font-medium">Total</span>
                   <span className="text-xl font-bold">₱{viewingOrder.total.toLocaleString()}</span>
+                </div>
+
+                <div className="pt-2">
+                  <Link to={`/admin/messages?orderId=${viewingOrder.id}`}>
+                    <Button variant="outline" className="w-full gap-2 text-sm border-blue-200 text-blue-700 hover:bg-blue-50">
+                      <MessageSquare className="h-4 w-4" />
+                      Chat with Customer regarding this Order
+                    </Button>
+                  </Link>
                 </div>
 
                 {viewingOrder.rating && (
