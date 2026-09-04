@@ -117,6 +117,8 @@ describe('Chat & Messages System Integration', () => {
 
     expect(screen.getByText(/Customer Support & Chat/i)).toBeInTheDocument();
     expect(screen.getByText(/Admin Online/i)).toBeInTheDocument();
+    expect(screen.queryByText(/View My Orders/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/General Inquiries/i)).not.toBeInTheDocument();
 
     const input = screen.getByPlaceholderText(/Type a message/i);
     expect(input).toBeInTheDocument();

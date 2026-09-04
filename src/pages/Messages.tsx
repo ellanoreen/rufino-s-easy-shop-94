@@ -124,15 +124,6 @@ export default function Messages() {
             Direct communication with Rufino's Furniture customer service and sales team
           </p>
         </div>
-
-        {orders.length > 0 && (
-          <Link to="/orders">
-            <Button variant="outline" size="sm" className="gap-2">
-              <ShoppingBag className="h-4 w-4" />
-              View My Orders
-            </Button>
-          </Link>
-        )}
       </div>
 
       {/* Main Chat Container */}
@@ -147,37 +138,10 @@ export default function Messages() {
               <p className="text-sm font-semibold text-foreground">Rufino's Furniture Representative</p>
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <Headphones className="h-3 w-3 text-muted-foreground" />
-                Store Assistance & Order Inquiries
+                Store Assistance & Customer Inquiries
               </p>
             </div>
           </div>
-
-          {/* Quick Order Selector Pill */}
-          {orders.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground hidden sm:inline">Discussing Order:</span>
-              <select
-                value={selectedOrderId || ''}
-                onChange={e => {
-                  const val = e.target.value;
-                  setSelectedOrderId(val || null);
-                  if (val) {
-                    setSearchParams({ orderId: val });
-                  } else {
-                    setSearchParams({});
-                  }
-                }}
-                className="text-xs bg-background border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary font-medium"
-              >
-                <option value="">-- General Inquiries --</option>
-                {orders.map(ord => (
-                  <option key={ord.id} value={ord.id}>
-                    Order #{ord.id.slice(0, 8)}... (₱{Number(ord.total).toLocaleString()} - {ord.status})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
         </div>
 
         {/* Selected Order Context Banner */}
