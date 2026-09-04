@@ -5,13 +5,18 @@ import { useProducts } from '@/context/ProductContext';
 import { Order, Product } from '@/types';
 import { toast } from '@/hooks/use-toast';
 
-type Timeframe = 'all' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+type Timeframe = 'all' | 'daily' | 'weekly' | 'monthly' | 'last_month' | 'specific_month' | 'yearly' | 'custom';
 
 export default function AdminReports() {
   const { allOrders } = useOrders();
   const { allProducts } = useProducts();
   const [reportType, setReportType] = useState<'sales' | 'orders' | 'inventory'>('sales');
   const [timeframe, setTimeframe] = useState<Timeframe>('all');
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${now.getFullYear()}-${month}`;
+  });
   const [customRange, setCustomRange] = useState({ start: '', end: '' });
 
   const tabs = [
@@ -20,35 +25,70 @@ export default function AdminReports() {
     { id: 'inventory', label: 'Inventory', icon: Package },
   ] as const;
 
+  const parseItemDate = (dateStr: string) => {
+    if (!dateStr) return null;
+    const cleanStr = dateStr.split('T')[0];
+    const parts = cleanStr.split('-').map(Number);
+    if (parts.length >= 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+      return { year: parts[0], month: parts[1], day: parts[2] };
+    }
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return null;
+    return { year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate() };
+  };
+
   const isWithinTimeframe = (dateStr: string) => {
     if (timeframe === 'all' || !dateStr) return true;
 
-    const date = new Date(dateStr);
+    const parsed = parseItemDate(dateStr);
+    if (!parsed) return false;
+
     const today = new Date();
+    const todayYear = today.getFullYear();
+    const todayMonth = today.getMonth() + 1;
+    const todayDay = today.getDate();
 
     if (timeframe === 'daily') {
-      return date.toISOString().split('T')[0] === today.toISOString().split('T')[0];
+      return parsed.year === todayYear && parsed.month === todayMonth && parsed.day === todayDay;
     }
 
     if (timeframe === 'weekly') {
-      const weekAgo = new Date();
-      weekAgo.setDate(today.getDate() - 7);
-      return date >= weekAgo && date <= today;
+      const itemDate = new Date(parsed.year, parsed.month - 1, parsed.day);
+      const weekAgo = new Date(todayYear, todayMonth - 1, todayDay - 7);
+      weekAgo.setHours(0, 0, 0, 0);
+      const endOfToday = new Date(todayYear, todayMonth - 1, todayDay, 23, 59, 59, 999);
+      return itemDate >= weekAgo && itemDate <= endOfToday;
     }
 
     if (timeframe === 'monthly') {
-      return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+      return parsed.year === todayYear && parsed.month === todayMonth;
+    }
+
+    if (timeframe === 'last_month') {
+      const lastMonthDate = new Date(todayYear, todayMonth - 2, 1);
+      const lastMonthYear = lastMonthDate.getFullYear();
+      const lastMonthNum = lastMonthDate.getMonth() + 1;
+      return parsed.year === lastMonthYear && parsed.month === lastMonthNum;
+    }
+
+    if (timeframe === 'specific_month') {
+      if (!selectedMonth) return true;
+      const [selYear, selMonth] = selectedMonth.split('-').map(Number);
+      return parsed.year === selYear && parsed.month === selMonth;
     }
 
     if (timeframe === 'yearly') {
-      return date.getFullYear() === today.getFullYear();
+      return parsed.year === todayYear;
     }
 
     if (timeframe === 'custom') {
       if (!customRange.start || !customRange.end) return true;
-      const start = new Date(customRange.start);
-      const end = new Date(customRange.end);
-      return date >= start && date <= end;
+      const [sY, sM, sD] = customRange.start.split('-').map(Number);
+      const [eY, eM, eD] = customRange.end.split('-').map(Number);
+      const start = new Date(sY, sM - 1, sD, 0, 0, 0, 0);
+      const end = new Date(eY, eM - 1, eD, 23, 59, 59, 999);
+      const itemDate = new Date(parsed.year, parsed.month - 1, parsed.day);
+      return itemDate >= start && itemDate <= end;
     }
 
     return true;
@@ -57,35 +97,91 @@ export default function AdminReports() {
   const filteredSales = useMemo(() => {
     const completedOrders = allOrders.filter(o => o.status === 'Delivered');
     return completedOrders.filter(o => isWithinTimeframe(o.date));
-  }, [allOrders, timeframe, customRange]);
+  }, [allOrders, timeframe, customRange, selectedMonth]);
 
   const filteredOrders = useMemo(() => {
     return allOrders.filter(o => isWithinTimeframe(o.date));
-  }, [allOrders, timeframe, customRange]);
+  }, [allOrders, timeframe, customRange, selectedMonth]);
 
   const filteredInventory = useMemo(() => {
     return allProducts.filter(p => isWithinTimeframe(p.date || ''));
-  }, [allProducts, timeframe, customRange]);
+  }, [allProducts, timeframe, customRange, selectedMonth]);
 
   const handlePrint = () => {
     window.print();
   };
 
+  const currentMonthYearName = useMemo(() => {
+    return new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }, []);
+
+  const lastMonthYearName = useMemo(() => {
+    const now = new Date();
+    const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return lastMonthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }, []);
+
   const timeframeText = useMemo(() => {
+    const today = new Date();
     if (timeframe === 'all') return 'All Time';
-    const labels: Record<string, string> = {
-      daily: 'Today',
-      weekly: 'Last 7 Days',
-      monthly: 'This Month',
-      yearly: 'This Year',
-    };
-    if (timeframe === 'custom') {
-      return customRange.start && customRange.end
-        ? `${customRange.start} to ${customRange.end}`
-        : 'Custom Range';
+
+    if (timeframe === 'daily') {
+      return today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     }
-    return labels[timeframe] || 'Filtered';
-  }, [timeframe, customRange]);
+
+    if (timeframe === 'weekly') {
+      const weekAgo = new Date(today);
+      weekAgo.setDate(today.getDate() - 7);
+      const startStr = weekAgo.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const endStr = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      return `Last 7 Days (${startStr} – ${endStr})`;
+    }
+
+    if (timeframe === 'monthly') {
+      return today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }
+
+    if (timeframe === 'last_month') {
+      const lastMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      return lastMonthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }
+
+    if (timeframe === 'specific_month') {
+      if (!selectedMonth) return 'Selected Month';
+      const [selYear, selMonth] = selectedMonth.split('-').map(Number);
+      const d = new Date(selYear, selMonth - 1, 1);
+      return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }
+
+    if (timeframe === 'yearly') {
+      return `Year ${today.getFullYear()}`;
+    }
+
+    if (timeframe === 'custom') {
+      if (customRange.start && customRange.end) {
+        const [sY, sM, sD] = customRange.start.split('-').map(Number);
+        const [eY, eM, eD] = customRange.end.split('-').map(Number);
+        const startD = new Date(sY, sM - 1, sD);
+        const endD = new Date(eY, eM - 1, eD);
+
+        // Check if custom range matches full exact month
+        const isStartFirstDay = sD === 1;
+        const lastDayOfStartMonth = new Date(sY, sM, 0).getDate();
+        const isEndLastDay = eD === lastDayOfStartMonth;
+        const isSameMonthAndYear = sY === eY && sM === eM;
+
+        if (isStartFirstDay && isEndLastDay && isSameMonthAndYear) {
+          return startD.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        }
+
+        const formatOpt: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+        return `${startD.toLocaleDateString('en-US', formatOpt)} – ${endD.toLocaleDateString('en-US', formatOpt)}`;
+      }
+      return 'Custom Date Range';
+    }
+
+    return 'Filtered';
+  }, [timeframe, customRange, selectedMonth]);
 
   const downloadCSV = (rows: (string | number)[][], filename: string) => {
     const csvContent =
@@ -315,12 +411,25 @@ export default function AdminReports() {
                 <option value="all">All Time</option>
                 <option value="daily">Daily / Today</option>
                 <option value="weekly">Weekly (Last 7 Days)</option>
-                <option value="monthly">Monthly (This Month)</option>
-                <option value="yearly">Yearly (This Year)</option>
+                <option value="monthly">Monthly ({currentMonthYearName})</option>
+                <option value="last_month">Last Month ({lastMonthYearName})</option>
+                <option value="specific_month">Specific Month</option>
+                <option value="yearly">Yearly ({new Date().getFullYear()})</option>
                 <option value="custom">Custom Date Range</option>
               </select>
               <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
+
+            {timeframe === 'specific_month' && (
+              <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-4 duration-300">
+                <input
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 text-slate-700 py-2 px-3 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+                />
+              </div>
+            )}
 
             {timeframe === 'custom' && (
               <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-4 duration-300">
