@@ -26,7 +26,7 @@ interface FormErrors {
 
 const AdminInventory = () => {
   const { products: productsList, addProduct, updateProduct, deleteProduct } = useProducts();
-  const { orders } = useOrders();
+  const { allOrders } = useOrders();
 
   const [editing, setEditing] = useState<Product | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -43,11 +43,11 @@ const AdminInventory = () => {
   const [loading, setLoading] = useState(false);
   const [editingStock, setEditingStock] = useState<Record<string, string>>({});
 
-  // ─── Compute total sold per product from Delivered orders ───────────────────
+  // ─── Compute total sold per product from Delivered orders (including historical) ───
   const soldByProduct = useMemo(() => {
     const map: Record<string, number> = {};
-    orders.forEach(order => {
-      if (order.status === 'Delivered' || order.status === 'Completed' as any) {
+    allOrders.forEach(order => {
+      if (order.status === 'Delivered' || (order.status as any) === 'Completed') {
         order.items.forEach(item => {
           const pid = item.product.id;
           map[pid] = (map[pid] || 0) + item.quantity;
@@ -55,7 +55,7 @@ const AdminInventory = () => {
       }
     });
     return map;
-  }, [orders]);
+  }, [allOrders]);
 
   const totalSoldAll = useMemo(() => Object.values(soldByProduct).reduce((s, v) => s + v, 0), [soldByProduct]);
 

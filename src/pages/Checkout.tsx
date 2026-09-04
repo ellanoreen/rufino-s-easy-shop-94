@@ -11,24 +11,34 @@ import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/context/CartContext';
 import { useOrders } from '@/context/OrderContext';
 import { toast } from '@/hooks/use-toast';
+
 const Checkout = () => {
-  const { items, total, clearCart } = useCart();
+  const { items, selectedItems, removeItems } = useCart();
   const { placeOrder } = useOrders();
   const navigate = useNavigate();
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({ name: '', address: '', contact: '', payment: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Use selected items from cart (fallback to all items if none specifically selected)
+  const checkoutItems = useMemo(() => {
+    return selectedItems.length > 0 ? selectedItems : items;
+  }, [selectedItems, items]);
+
+  const checkoutSubtotal = useMemo(() => {
+    return checkoutItems.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
+  }, [checkoutItems]);
+
   // Installation Service state
   const [wantsInstallation, setWantsInstallation] = useState<'yes' | 'no' | ''>('');
 
-  // Calculate total installation fee for products in cart
+  // Calculate total installation fee for products in checkout
   const productInstallationFee = useMemo(() => {
-    return items.reduce((sum, i) => sum + (i.product.installationFee || 0) * i.quantity, 0);
-  }, [items]);
+    return checkoutItems.reduce((sum, i) => sum + (i.product.installationFee || 0) * i.quantity, 0);
+  }, [checkoutItems]);
 
   const effectiveInstallationFee = wantsInstallation === 'yes' ? productInstallationFee : 0;
-  const grandTotal = total + effectiveInstallationFee;
+  const grandTotal = checkoutSubtotal + effectiveInstallationFee;
 
   const ALLOWED_AREAS = [
     'Balabawan', 'Balong-balong', 'Colojo', 'Liasan', 'Liguac',
@@ -39,7 +49,7 @@ const Checkout = () => {
   const expectedDelivery = new Date();
   expectedDelivery.setDate(expectedDelivery.getDate() + 14);
 
-  if (items.length === 0 && !submitted) {
+  if (checkoutItems.length === 0 && !submitted) {
     navigate('/cart');
     return null;
   }
@@ -66,7 +76,7 @@ const Checkout = () => {
     e.preventDefault();
     if (!validate()) return;
     placeOrder(
-      items,
+      checkoutItems,
       grandTotal,
       form.name.trim(),
       form.address.trim(),
@@ -75,7 +85,7 @@ const Checkout = () => {
       wantsInstallation === 'yes',
       effectiveInstallationFee
     );
-    clearCart();
+    removeItems(checkoutItems);
     setSubmitted(true);
     toast({ title: 'Order placed!', description: 'Thank you for your purchase.' });
   };
@@ -204,8 +214,6 @@ const Checkout = () => {
             )}
           </Card>
 
-
-
           <Button type="submit" size="lg" className="w-full">Place Order</Button>
         </form>
 
@@ -214,7 +222,7 @@ const Checkout = () => {
           <h2 className="font-display text-xl font-bold">Order Summary</h2>
           <Separator className="my-4" />
           <div className="space-y-3">
-            {items.map(({ product, quantity, selectedSize, selectedColor }) => (
+            {checkoutItems.map(({ product, quantity, selectedSize, selectedColor }) => (
               <div key={`${product.id}-${selectedSize}-${selectedColor}`} className="text-sm">
                 <div className="flex justify-between">
                   <span>{product.name} × {quantity}</span>
@@ -231,8 +239,8 @@ const Checkout = () => {
           <Separator className="my-4" />
           <div className="space-y-2 text-sm mb-4">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Subtotal</span>
-              <span>₱{total.toLocaleString()}</span>
+              <span className="text-muted-foreground">Subtotal ({checkoutItems.length} item{checkoutItems.length !== 1 && 's'})</span>
+              <span>₱{checkoutSubtotal.toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Shipping</span>
@@ -253,8 +261,6 @@ const Checkout = () => {
             <span>Total</span>
             <span>₱{grandTotal.toLocaleString()}</span>
           </div>
-
-
         </Card>
       </div>
     </div>

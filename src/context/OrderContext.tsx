@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { Order, CartItem } from '@/types';
 
 interface OrderContextType {
   orders: Order[];
+  allOrders: Order[];
   placeOrder: (
     items: CartItem[],
     total: number,
@@ -36,17 +37,22 @@ const normalizeOrder = (o: any): Order => {
     item.installationFee = Number(item.installation_fee);
     delete item.installation_fee;
   }
-  return item as Order;
+  return {
+    ...item,
+    total: Number(item.total),
+    deleted: Boolean(item.deleted),
+    deletedAt: item.deleted_at || item.deletedAt,
+  } as Order;
 };
 
 export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [rawOrders, setRawOrders] = useState<Order[]>([]);
 
   useEffect(() => {
     fetch('/api/orders')
       .then(res => res.json())
       .then((data: any[]) => {
-        setOrders(data.map(normalizeOrder));
+        setRawOrders(data.map(normalizeOrder));
       })
       .catch(err => console.error('Failed to fetch orders:', err));
   }, []);
@@ -82,12 +88,11 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         body: JSON.stringify(newOrderData),
       });
       const newOrder = await res.json();
-      setOrders(prev => [normalizeOrder(newOrder), ...prev]);
+      setRawOrders(prev => [normalizeOrder(newOrder), ...prev]);
     } catch (err) {
-        console.error('Failed to place order:', err);
+      console.error('Failed to place order:', err);
     }
   }, []);
-
 
   const updateOrderStatus = useCallback(async (orderId: string, status: Order['status']) => {
     try {
@@ -97,7 +102,7 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         body: JSON.stringify({ status }),
       });
       const updatedOrder = await res.json();
-      setOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o));
+      setRawOrders(prev => prev.map(o => o.id === orderId ? normalizeOrder(updatedOrder) : o));
     } catch (err) {
       console.error('Failed to update order status:', err);
     }
@@ -105,13 +110,27 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const deleteOrder = useCallback(async (orderId: string) => {
     try {
-       // optional: wait await fetch(`/api/orders/${orderId}`, { method: 'DELETE' }); If we implement endpoint
-       // we just delete locally if we don't have DELETE /api/orders/:id yet. Oh wait, I didn't add delete order. 
-       // Well, I will just filter locally for now.
-       console.warn("Delete order not implemented in backend, deleting locally only");
-       setOrders(prev => prev.filter(o => o.id !== orderId));
+      const res = await fetch(`/api/orders/${orderId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        throw new Error(`Failed to delete order (${res.status})`);
+      }
+      setRawOrders(prev =>
+        prev.map(o =>
+          o.id === orderId
+            ? { ...o, deleted: true, deletedAt: new Date().toISOString().split('T')[0] }
+            : o
+        )
+      );
     } catch (err) {
-       console.error(err);
+      console.error('Failed to delete order on server:', err);
+      // Soft-delete locally in case of offline fallback
+      setRawOrders(prev =>
+        prev.map(o =>
+          o.id === orderId
+            ? { ...o, deleted: true, deletedAt: new Date().toISOString().split('T')[0] }
+            : o
+        )
+      );
     }
   }, []);
 
@@ -123,14 +142,17 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         body: JSON.stringify({ rating, feedback }),
       });
       const updatedOrder = await res.json();
-      setOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o));
+      setRawOrders(prev => prev.map(o => o.id === orderId ? normalizeOrder(updatedOrder) : o));
     } catch (err) {
       console.error('Failed to submit feedback:', err);
     }
   }, []);
 
+  const orders = useMemo(() => rawOrders.filter(o => !o.deleted), [rawOrders]);
+  const allOrders = rawOrders;
+
   return (
-    <OrderContext.Provider value={{ orders, placeOrder, updateOrderStatus, deleteOrder, submitFeedback }}>
+    <OrderContext.Provider value={{ orders, allOrders, placeOrder, updateOrderStatus, deleteOrder, submitFeedback }}>
       {children}
     </OrderContext.Provider>
   );

@@ -3,12 +3,13 @@ import { ShoppingCart, PhilippinePeso, Package, Printer, Calendar, ChevronDown, 
 import { useOrders } from '@/context/OrderContext';
 import { useProducts } from '@/context/ProductContext';
 import { Order, Product } from '@/types';
+import { toast } from '@/hooks/use-toast';
 
 type Timeframe = 'all' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
 
 export default function AdminReports() {
-  const { orders } = useOrders();
-  const { products } = useProducts();
+  const { allOrders } = useOrders();
+  const { allProducts } = useProducts();
   const [reportType, setReportType] = useState<'sales' | 'orders' | 'inventory'>('sales');
   const [timeframe, setTimeframe] = useState<Timeframe>('all');
   const [customRange, setCustomRange] = useState({ start: '', end: '' });
@@ -22,8 +23,6 @@ export default function AdminReports() {
   const isWithinTimeframe = (dateStr: string) => {
     if (timeframe === 'all' || !dateStr) return true;
 
-    // Parse order/product date. Ensure you have the date.
-    // If dateStr is not provided, we consider it to be within? Wait, no, false. But let's handle "all" earlier.
     const date = new Date(dateStr);
     const today = new Date();
 
@@ -56,17 +55,17 @@ export default function AdminReports() {
   };
 
   const filteredSales = useMemo(() => {
-    const completedOrders = orders.filter(o => o.status === 'Delivered');
+    const completedOrders = allOrders.filter(o => o.status === 'Delivered');
     return completedOrders.filter(o => isWithinTimeframe(o.date));
-  }, [orders, timeframe, customRange]);
+  }, [allOrders, timeframe, customRange]);
 
   const filteredOrders = useMemo(() => {
-    return orders.filter(o => isWithinTimeframe(o.date));
-  }, [orders, timeframe, customRange]);
+    return allOrders.filter(o => isWithinTimeframe(o.date));
+  }, [allOrders, timeframe, customRange]);
 
   const filteredInventory = useMemo(() => {
-    return products.filter(p => isWithinTimeframe(p.date || ''));
-  }, [products, timeframe, customRange]);
+    return allProducts.filter(p => isWithinTimeframe(p.date || ''));
+  }, [allProducts, timeframe, customRange]);
 
   const handlePrint = () => {
     window.print();
@@ -78,7 +77,7 @@ export default function AdminReports() {
       daily: 'Today',
       weekly: 'Last 7 Days',
       monthly: 'This Month',
-      yearly: 'This Year'
+      yearly: 'This Year',
     };
     if (timeframe === 'custom') {
       return customRange.start && customRange.end
@@ -88,22 +87,188 @@ export default function AdminReports() {
     return labels[timeframe] || 'Filtered';
   }, [timeframe, customRange]);
 
+  const downloadCSV = (rows: (string | number)[][], filename: string) => {
+    const csvContent =
+      '\uFEFF' +
+      rows
+        .map(row =>
+          row
+            .map(cell => {
+              if (cell === null || cell === undefined) return '""';
+              const str = String(cell).replace(/"/g, '""');
+              return `"${str}"`;
+            })
+            .join(',')
+        )
+        .join('\r\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadReport = () => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const generatedDateStr = new Date().toLocaleString('en-PH', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    if (reportType === 'sales') {
+      if (filteredSales.length === 0) {
+        toast({
+          title: 'No Data to Download',
+          description: `No sales records found for the period: ${timeframeText}.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const totalRevenue = filteredSales.reduce((sum, o) => sum + Number(o.total), 0);
+      const totalItemsCount = filteredSales.reduce((sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0), 0);
+
+      const rows: (string | number)[][] = [
+        ["Rufino's Furniture - Online Shop Management System"],
+        ['Sales Report'],
+        [`Period: ${timeframeText}`],
+        [`Date Generated: ${generatedDateStr}`],
+        [''],
+        ['Order ID', 'Date', 'Customer', 'Contact', 'Items Details', 'Total Items', 'Payment Method', 'Installation Service', 'Status', 'Revenue (PHP)'],
+        ...filteredSales.map(o => [
+          o.id,
+          o.date,
+          o.customerName,
+          o.contact,
+          o.items.map(i => `${i.product.name} (x${i.quantity})`).join('; '),
+          o.items.reduce((s, i) => s + i.quantity, 0),
+          o.paymentMethod,
+          o.installationSelected ? `Yes (₱${(o.installationFee || 0).toLocaleString()})` : 'No',
+          o.deleted ? 'Delivered (Archived)' : 'Delivered',
+          Number(o.total).toFixed(2),
+        ]),
+        [''],
+        ['SUMMARY', '', '', '', '', `Total Items: ${totalItemsCount}`, '', '', 'Total Revenue:', Number(totalRevenue).toFixed(2)],
+      ];
+
+      downloadCSV(rows, `Rufinos_Furniture_Sales_Report_${timeframe}_${todayStr}.csv`);
+      toast({ title: 'Report Downloaded', description: 'Sales report has been downloaded successfully.' });
+    } else if (reportType === 'orders') {
+      if (filteredOrders.length === 0) {
+        toast({
+          title: 'No Data to Download',
+          description: `No order records found for the period: ${timeframeText}.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const totalRevenue = filteredOrders.reduce((sum, o) => sum + Number(o.total), 0);
+      const totalItemsCount = filteredOrders.reduce((sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0), 0);
+
+      const rows: (string | number)[][] = [
+        ["Rufino's Furniture - Online Shop Management System"],
+        ['Orders Report'],
+        [`Period: ${timeframeText}`],
+        [`Date Generated: ${generatedDateStr}`],
+        [''],
+        ['Order ID', 'Date', 'Customer', 'Contact', 'Address', 'Items Details', 'Total Items', 'Payment Method', 'Installation Service', 'Status', 'Est. Delivery', 'Total Amount (PHP)'],
+        ...filteredOrders.map(o => [
+          o.id,
+          o.date,
+          o.customerName,
+          o.contact,
+          o.address,
+          o.items.map(i => `${i.product.name} (x${i.quantity})`).join('; '),
+          o.items.reduce((s, i) => s + i.quantity, 0),
+          o.paymentMethod,
+          o.installationSelected ? `Yes (₱${(o.installationFee || 0).toLocaleString()})` : 'No',
+          o.deleted ? `${o.status} (Archived)` : o.status,
+          o.expectedDeliveryDate,
+          Number(o.total).toFixed(2),
+        ]),
+        [''],
+        ['SUMMARY', '', '', '', '', '', `Total Items: ${totalItemsCount}`, '', '', `Total Orders: ${filteredOrders.length}`, 'Total Amount:', Number(totalRevenue).toFixed(2)],
+      ];
+
+      downloadCSV(rows, `Rufinos_Furniture_Orders_Report_${timeframe}_${todayStr}.csv`);
+      toast({ title: 'Report Downloaded', description: 'Orders report has been downloaded successfully.' });
+    } else if (reportType === 'inventory') {
+      if (filteredInventory.length === 0) {
+        toast({
+          title: 'No Data to Download',
+          description: `No inventory records found for the period: ${timeframeText}.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const totalStock = filteredInventory.reduce((sum, p) => sum + Number(p.stock), 0);
+      const totalInventoryValue = filteredInventory.reduce((sum, p) => sum + Number(p.price) * Number(p.stock), 0);
+
+      const rows: (string | number)[][] = [
+        ["Rufino's Furniture - Online Shop Management System"],
+        ['Inventory Report'],
+        [`Period: ${timeframeText}`],
+        [`Date Generated: ${generatedDateStr}`],
+        [''],
+        ['Product ID', 'Product Name', 'Category', 'Date Added', 'Unit Price (PHP)', 'Stock Level', 'Stock Status', 'Inventory Value (PHP)'],
+        ...filteredInventory.map(p => {
+          const stockStatus = p.deleted ? 'Archived' : p.stock === 0 ? 'Out of Stock' : p.stock <= 5 ? 'Low Stock' : 'Healthy';
+          const value = Number(p.price) * Number(p.stock);
+          return [
+            p.id,
+            p.name,
+            p.category,
+            p.date || 'N/A',
+            Number(p.price).toFixed(2),
+            p.stock,
+            stockStatus,
+            value.toFixed(2),
+          ];
+        }),
+        [''],
+        ['SUMMARY', '', '', `Total Products: ${filteredInventory.length}`, '', `Total Stock: ${totalStock}`, 'Total Inventory Value:', Number(totalInventoryValue).toFixed(2)],
+      ];
+
+      downloadCSV(rows, `Rufinos_Furniture_Inventory_Report_${timeframe}_${todayStr}.csv`);
+      toast({ title: 'Report Downloaded', description: 'Inventory report has been downloaded successfully.' });
+    }
+  };
+
   return (
     <div className="p-4 md:p-8 space-y-8 bg-slate-50/50 min-h-screen">
       {/* Header - Hidden on Print */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
         <div>
           <h1 className="text-3xl md:text-4xl font-serif text-slate-800 tracking-tight">Analytics & Reports</h1>
-          <p className="text-slate-500 mt-2 text-sm md:text-base">Comprehensive business insights and data</p>
+          <p className="text-slate-500 mt-2 text-sm md:text-base">Comprehensive business insights and historical records</p>
         </div>
 
-        <button
-          onClick={handlePrint}
-          className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-lg shadow-sm hover:shadow-md hover:bg-slate-800 transition-all font-medium text-sm border border-slate-700/50"
-        >
-          <Printer className="w-4 h-4" />
-          <span>Print / PDF</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={handleDownloadReport}
+            className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-lg shadow-sm hover:shadow-md hover:bg-emerald-700 transition-all font-medium text-sm"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download Report</span>
+          </button>
+          <button
+            onClick={handlePrint}
+            className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-lg shadow-sm hover:shadow-md hover:bg-slate-800 transition-all font-medium text-sm border border-slate-700/50"
+          >
+            <Printer className="w-4 h-4" />
+            <span>Print / PDF</span>
+          </button>
+        </div>
       </div>
 
       {/* Tabs - Hidden on Print */}
@@ -113,10 +278,11 @@ export default function AdminReports() {
             <button
               key={tab.id}
               onClick={() => setReportType(tab.id)}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${reportType === tab.id
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${
+                reportType === tab.id
                   ? 'bg-slate-900 text-white shadow-md'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/50'
-                }`}
+              }`}
             >
               <tab.icon className={`h-4.5 w-4.5 ${reportType === tab.id ? 'text-white' : 'text-slate-400'}`} />
               {tab.label}
@@ -222,7 +388,14 @@ export default function AdminReports() {
                 ) : (
                   filteredSales.map(order => (
                     <tr key={order.id} className="border-b border-slate-50 hover:bg-slate-50/70 transition-colors print:border-gray-200">
-                      <td className="py-4 px-6 text-sm font-medium text-slate-900">{order.id.slice(0, 8)}...</td>
+                      <td className="py-4 px-6 text-sm font-medium text-slate-900">
+                        <div className="flex items-center gap-1.5">
+                          <span>{order.id.slice(0, 8)}...</span>
+                          {order.deleted && (
+                            <span className="text-[10px] bg-slate-100 text-slate-600 rounded px-1.5 py-0.2 border">Archived</span>
+                          )}
+                        </div>
+                      </td>
                       <td className="py-4 px-6 text-sm text-slate-500">{order.date}</td>
                       <td className="py-4 px-6 text-sm text-slate-700 font-medium">{order.customerName}</td>
                       <td className="py-4 px-6 text-sm text-slate-500">{order.items.reduce((acc, item) => acc + item.quantity, 0)} items</td>
@@ -251,18 +424,24 @@ export default function AdminReports() {
                 ) : (
                   filteredOrders.map(order => (
                     <tr key={order.id} className="border-b border-slate-50 hover:bg-slate-50/70 transition-colors print:border-gray-200">
-                      <td className="py-4 px-6 text-sm font-medium text-slate-900">{order.id.slice(0, 8)}...</td>
+                      <td className="py-4 px-6 text-sm font-medium text-slate-900">
+                        <div className="flex items-center gap-1.5">
+                          <span>{order.id.slice(0, 8)}...</span>
+                          {order.deleted && (
+                            <span className="text-[10px] bg-slate-100 text-slate-600 rounded px-1.5 py-0.2 border">Archived</span>
+                          )}
+                        </div>
+                      </td>
                       <td className="py-4 px-6 text-sm text-slate-500">{order.date}</td>
                       <td className="py-4 px-6 text-sm text-slate-700">{order.customerName}</td>
                       <td className="py-4 px-6">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
                           ${order.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
                             order.status === 'Confirmed' ? 'bg-indigo-100 text-indigo-800' :
-                              order.status === 'Processing' ? 'bg-purple-100 text-purple-800' :
-                                order.status === 'Out for Delivery' ? 'bg-blue-100 text-blue-800' :
-                                  order.status === 'Delivered' ? 'bg-green-100 text-green-800' :
-                                    order.status === 'Cancelled' ? 'bg-red-100 text-red-800' :
-                                      'bg-slate-100 text-slate-800'
+                              order.status === 'Out for Delivery' ? 'bg-blue-100 text-blue-800' :
+                                order.status === 'Delivered' ? 'bg-green-100 text-green-800' :
+                                  order.status === 'Cancelled' ? 'bg-red-100 text-red-800' :
+                                    'bg-slate-100 text-slate-800'
                           } print:bg-transparent print:text-black print:border print:border-gray-300
                         `}>
                           {order.status}
@@ -298,17 +477,29 @@ export default function AdminReports() {
                           <div className="h-10 w-10 shrink-0 rounded-md bg-slate-100 overflow-hidden border border-slate-200 print:hidden">
                             <img src={product.image} className="h-full w-full object-cover" alt={product.name} />
                           </div>
-                          <span className="font-medium text-slate-900">{product.name}</span>
+                          <div>
+                            <span className="font-medium text-slate-900">{product.name}</span>
+                            {product.deleted && (
+                              <span className="ml-2 text-[10px] bg-slate-100 text-slate-600 rounded px-1.5 py-0.5 border">Archived</span>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="py-4 px-6 text-sm text-slate-500">{product.category}</td>
                       <td className="py-4 px-6 text-sm text-slate-500">{product.date || 'Legacy'}</td>
                       <td className="py-4 px-6 text-sm text-slate-700">₱{Number(product.price).toLocaleString()}</td>
                       <td className="py-4 px-6 text-right">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-sm font-semibold ${product.stock <= 5 ? 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/10' : 'text-slate-900'
+                        {product.deleted ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-600 border">
+                            Archived
+                          </span>
+                        ) : (
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-sm font-semibold ${
+                            product.stock <= 5 ? 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/10' : 'text-slate-900'
                           } print:bg-transparent print:ring-0 print:text-black`}>
-                          {product.stock}
-                        </span>
+                            {product.stock}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))

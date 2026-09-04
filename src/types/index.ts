@@ -12,6 +12,8 @@ export interface Product {
   colors: string[];
   installationFee?: number;
   date?: string;
+  deleted?: boolean;
+  deletedAt?: string;
 }
 
 export interface CartItem {
@@ -25,7 +27,7 @@ export interface Order {
   id: string;
   items: CartItem[];
   total: number;
-  status: 'Pending' | 'Confirmed' | 'Processing' | 'Out for Delivery' | 'Delivered' | 'Cancelled';
+  status: 'Pending' | 'Confirmed' | 'Out for Delivery' | 'Delivered' | 'Cancelled';
   rating?: number;
   feedback?: string;
   customerName: string;
@@ -36,6 +38,8 @@ export interface Order {
   installationFee?: number;
   date: string;
   expectedDeliveryDate: string;
+  deleted?: boolean;
+  deletedAt?: string;
 }
 
 export interface User {

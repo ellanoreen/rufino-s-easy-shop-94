@@ -16,7 +16,6 @@ const statusColor = (status: string) => {
   switch (status) {
     case 'Delivered': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
     case 'Out for Delivery': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-    case 'Processing': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
     case 'Confirmed': return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200';
     case 'Pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
     case 'Cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
@@ -29,7 +28,7 @@ const AdminOrders = () => {
 
   const handleDeleteOrder = (orderId: string) => {
     deleteOrder(orderId);
-    toast({ title: 'Order deleted', description: `Order ${orderId} has been successfully removed.` });
+    toast({ title: 'Order deleted', description: `Order ${orderId} has been archived from active orders.` });
   };
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -66,7 +65,6 @@ const AdminOrders = () => {
             <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="Pending">Pending</SelectItem>
             <SelectItem value="Confirmed">Confirmed</SelectItem>
-            <SelectItem value="Processing">Processing</SelectItem>
             <SelectItem value="Out for Delivery">Out for Delivery</SelectItem>
             <SelectItem value="Delivered">Delivered</SelectItem>
             <SelectItem value="Cancelled">Cancelled</SelectItem>
@@ -135,7 +133,6 @@ const AdminOrders = () => {
                         <SelectContent>
                           <SelectItem value="Pending">Pending</SelectItem>
                           <SelectItem value="Confirmed">Confirmed</SelectItem>
-                          <SelectItem value="Processing">Processing</SelectItem>
                           <SelectItem value="Out for Delivery">Out for Delivery</SelectItem>
                           <SelectItem value="Delivered">Delivered</SelectItem>
                           <SelectItem value="Cancelled">Cancelled</SelectItem>
@@ -159,7 +156,7 @@ const AdminOrders = () => {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Delete Order {o.id}?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                This action cannot be undone. This will permanently remove the order from the system.
+                                Are you sure you want to delete this order? It will be removed from active orders management, but its transaction details and historical data will be safely preserved in Analytics & Reports.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>

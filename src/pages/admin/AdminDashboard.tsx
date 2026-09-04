@@ -26,7 +26,6 @@ const statusColor = (status: string) => {
   switch (status) {
     case 'Delivered': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
     case 'Out for Delivery': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-    case 'Processing': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
     case 'Confirmed': return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200';
     case 'Pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
     case 'Cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
@@ -37,14 +36,13 @@ const statusColor = (status: string) => {
 const STATUS_COLORS: Record<string, string> = {
   Delivered: '#10b981',
   'Out for Delivery': '#3b82f6',
-  Processing: '#8b5cf6',
   Confirmed: '#6366f1',
   Pending: '#f59e0b',
   Cancelled: '#ef4444',
 };
 
 const AdminDashboard = () => {
-  const { orders } = useOrders();
+  const { orders, allOrders } = useOrders();
   const { products } = useProducts();
   const { installationFee, updateInstallationFee } = useSettings();
   const [editingFee, setEditingFee] = useState(false);
@@ -53,13 +51,13 @@ const AdminDashboard = () => {
   const stats = [
     { label: 'Total Inventory', value: products.reduce((s, p) => s + p.stock, 0).toLocaleString(), icon: Package, color: 'bg-accent/10 text-accent' },
     { label: 'Total Orders', value: orders.length, icon: ShoppingCart, color: 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300' },
-    { label: 'Revenue', value: `₱${orders.filter(o => o.status === 'Delivered').reduce((s, o) => s + Number(o.total), 0).toLocaleString()}`, icon: PhilippinePeso, color: 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300' },
+    { label: 'Revenue', value: `₱${allOrders.filter(o => o.status === 'Delivered').reduce((s, o) => s + Number(o.total), 0).toLocaleString()}`, icon: PhilippinePeso, color: 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300' },
     { label: 'Pending Orders', value: orders.filter(o => o.status === 'Pending').length, icon: TrendingUp, color: 'bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300' },
   ];
 
   const revenueData = useMemo(() => {
     const data: Record<string, { dateObj: Date; revenue: number }> = {};
-    orders.forEach(o => {
+    allOrders.forEach(o => {
       if (o.status === 'Delivered') {
         const dateObj = new Date(o.date);
         const dateStr = dateObj.toLocaleDateString([], { month: 'short', day: 'numeric' });
@@ -81,7 +79,7 @@ const AdminDashboard = () => {
       { date: 'Tue', revenue: 0 },
       { date: 'Wed', revenue: 0 },
     ];
-  }, [orders]);
+  }, [allOrders]);
 
   const orderStatusData = useMemo(() => {
     const counts: Record<string, number> = {};

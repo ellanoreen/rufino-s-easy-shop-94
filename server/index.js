@@ -23,15 +23,16 @@ initializeDB();
   try {
     // Map old status values to the new status system
     const migrations = [
-      { old: 'Shipped',   newStatus: 'Out for Delivery' },
-      { old: 'Completed', newStatus: 'Delivered' },
-      { old: 'shipped',   newStatus: 'Out for Delivery' },
-      { old: 'completed', newStatus: 'Delivered' },
-      { old: 'pending',   newStatus: 'Pending' },
-      { old: 'confirmed', newStatus: 'Confirmed' },
-      { old: 'processing',newStatus: 'Processing' },
-      { old: 'delivered', newStatus: 'Delivered' },
-      { old: 'cancelled', newStatus: 'Cancelled' },
+      { old: 'Shipped',    newStatus: 'Out for Delivery' },
+      { old: 'Completed',  newStatus: 'Delivered' },
+      { old: 'shipped',    newStatus: 'Out for Delivery' },
+      { old: 'completed',  newStatus: 'Delivered' },
+      { old: 'pending',    newStatus: 'Pending' },
+      { old: 'confirmed',  newStatus: 'Confirmed' },
+      { old: 'processing', newStatus: 'Confirmed' },
+      { old: 'Processing', newStatus: 'Confirmed' },
+      { old: 'delivered',  newStatus: 'Delivered' },
+      { old: 'cancelled',  newStatus: 'Cancelled' },
     ];
     for (const { old, newStatus } of migrations) {
       const result = await query(
@@ -108,8 +109,14 @@ app.put('/api/products/:id', async (req, res) => {
 app.delete('/api/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    await query('DELETE FROM products WHERE id = $1', [id]);
-    res.json({ message: 'Product deleted' });
+    const result = await query(
+      `UPDATE products SET deleted = true, deleted_at = to_char(CURRENT_TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS') WHERE id = $1 RETURNING *`,
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    res.json({ message: 'Product archived successfully', product: result.rows[0] });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -118,7 +125,7 @@ app.delete('/api/products/:id', async (req, res) => {
 // --- Orders Routes ---
 app.get('/api/orders', async (req, res) => {
   try {
-    const result = await query('SELECT * FROM orders');
+    const result = await query('SELECT * FROM orders ORDER BY date DESC');
     res.json(result.rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -140,7 +147,6 @@ app.post('/api/orders', async (req, res) => {
   }
 });
 
-
 app.put('/api/orders/:id/status', async (req, res) => {
   try {
     const { id } = req.params;
@@ -150,6 +156,22 @@ app.put('/api/orders/:id/status', async (req, res) => {
       [status, id]
     );
     res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/orders/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await query(
+      `UPDATE orders SET deleted = true, deleted_at = to_char(CURRENT_TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS') WHERE id = $1 RETURNING *`,
+      [id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    res.json({ message: 'Order archived successfully', order: result.rows[0] });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

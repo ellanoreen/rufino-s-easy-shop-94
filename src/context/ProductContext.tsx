@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { Product } from '@/types';
 
 interface ProductContextType {
   products: Product[];
+  allProducts: Product[];
   addProduct: (product: Omit<Product, 'id'>) => Promise<boolean>;
   updateProduct: (product: Product) => Promise<boolean>;
   deleteProduct: (productId: string) => Promise<boolean>;
@@ -19,16 +20,18 @@ const normalizeProduct = (p: any): Product => {
     price: Number(p.price),
     stock: Number(p.stock),
     installationFee: Number(p.installation_fee ?? p.installationFee ?? 0),
+    deleted: Boolean(p.deleted),
+    deletedAt: p.deleted_at || p.deletedAt,
   };
 };
 
 export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [rawProducts, setRawProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     fetch('/api/products')
       .then(res => res.json())
-      .then((data: any[]) => setProducts(data.map(normalizeProduct)))
+      .then((data: any[]) => setRawProducts(data.map(normalizeProduct)))
       .catch(err => console.error('Failed to fetch products:', err));
   }, []);
 
@@ -54,7 +57,7 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
         throw new Error('Server returned an invalid or empty response.');
       }
 
-      setProducts(prev => [...prev, normalizeProduct(data)]);
+      setRawProducts(prev => [normalizeProduct(data), ...prev]);
       return true;
     } catch (err: any) {
       console.error('Failed to add product:', err);
@@ -84,7 +87,7 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
         throw new Error('Server returned an invalid or empty response.');
       }
 
-      setProducts(prev => prev.map(p => p.id === product.id ? normalizeProduct(data) : p));
+      setRawProducts(prev => prev.map(p => (p.id === product.id ? normalizeProduct(data) : p)));
       return true;
     } catch (err: any) {
       console.error('Failed to update product:', err);
@@ -95,7 +98,7 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const deleteProduct = useCallback(async (productId: string) => {
     try {
       const res = await fetch(`/api/products/${productId}`, { method: 'DELETE' });
-      
+
       const contentType = res.headers.get('content-type');
       let data;
       if (contentType && contentType.includes('application/json')) {
@@ -105,8 +108,15 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (!res.ok) {
         throw new Error(data?.error || `Failed to delete product (${res.status})`);
       }
-      
-      setProducts(prev => prev.filter(p => p.id !== productId));
+
+      // Mark as soft-deleted locally so active lists filter it out while reports preserve it
+      setRawProducts(prev =>
+        prev.map(p =>
+          p.id === productId
+            ? { ...p, deleted: true, deletedAt: new Date().toISOString().split('T')[0] }
+            : p
+        )
+      );
       return true;
     } catch (err: any) {
       console.error('Failed to delete product:', err);
@@ -114,8 +124,11 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, []);
 
+  const products = useMemo(() => rawProducts.filter(p => !p.deleted), [rawProducts]);
+  const allProducts = rawProducts;
+
   return (
-    <ProductContext.Provider value={{ products, addProduct, updateProduct, deleteProduct }}>
+    <ProductContext.Provider value={{ products, allProducts, addProduct, updateProduct, deleteProduct }}>
       {children}
     </ProductContext.Provider>
   );

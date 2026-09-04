@@ -86,6 +86,20 @@ export const initializeDB = async () => {
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS installation_fee NUMERIC DEFAULT 0;
     `);
 
+    // Migration: add soft-delete columns (deleted, deleted_at) to products and orders
+    await pool.query(`
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS deleted BOOLEAN DEFAULT false;
+    `);
+    await pool.query(`
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS deleted_at TEXT DEFAULT NULL;
+    `);
+    await pool.query(`
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS deleted BOOLEAN DEFAULT false;
+    `);
+    await pool.query(`
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS deleted_at TEXT DEFAULT NULL;
+    `);
+
     console.log('Database initialized successfully.');
   } catch (error) {
     console.error('Failed to initialize database:', error);
