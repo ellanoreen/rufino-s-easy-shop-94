@@ -16,6 +16,8 @@ interface ChatContextType {
   unreadCount: number;
   sendMessage: (params: SendMessageParams) => Promise<Message | null>;
   markAsRead: (customerId: string) => Promise<void>;
+  markAsUnread: (customerId: string) => Promise<void>;
+  deleteConversation: (customerId: string) => Promise<void>;
   refreshMessages: () => Promise<void>;
   getCustomerMessages: (customerId: string) => Message[];
   loading: boolean;
@@ -195,9 +197,71 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user, isAdmin]);
 
+  const markAsUnread = useCallback(async (targetCustomerId: string) => {
+    if (!user) return;
+
+    setMessages(prev => {
+      let customerMsgFound = false;
+      const updated = prev.map(m => {
+        if (m.customerId === targetCustomerId && m.senderRole === 'customer') {
+          customerMsgFound = true;
+          return { ...m, isRead: false };
+        }
+        return m;
+      });
+      // Fallback: if no message with senderRole === 'customer', mark the last message of this customerId as unread
+      if (!customerMsgFound) {
+        let lastIdx = -1;
+        for (let i = updated.length - 1; i >= 0; i--) {
+          if (updated[i].customerId === targetCustomerId) {
+            lastIdx = i;
+            break;
+          }
+        }
+        if (lastIdx !== -1) {
+          updated[lastIdx] = { ...updated[lastIdx], isRead: false };
+        }
+      }
+      return updated;
+    });
+
+    try {
+      await fetch('/api/messages/unread', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId: targetCustomerId }),
+      });
+    } catch (error) {
+      // Fallback
+    }
+  }, [user]);
+
+  const deleteConversation = useCallback(async (targetCustomerId: string) => {
+    if (!user || !isAdmin) return;
+    const deletedAt = new Date().toISOString();
+
+    // Soft delete locally in state
+    setMessages(prev =>
+      prev.map(m => {
+        if (m.customerId === targetCustomerId) {
+          return { ...m, deleted: true, deletedAt };
+        }
+        return m;
+      })
+    );
+
+    try {
+      await fetch(`/api/messages/conversation/${targetCustomerId}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.warn('API delete conversation failed, soft-deleted locally:', error);
+    }
+  }, [user, isAdmin]);
+
   const getCustomerMessages = useCallback((customerId: string) => {
     return messages
-      .filter(m => m.customerId === customerId)
+      .filter(m => m.customerId === customerId && !m.deleted)
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   }, [messages]);
 
@@ -206,6 +270,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const map = new Map<string, ConversationSummary>();
 
     messages.forEach(msg => {
+      if (msg.deleted) return; // Skip soft-deleted messages
       const cId = msg.customerId;
       const existing = map.get(cId);
 
@@ -240,11 +305,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const unreadCount = useMemo(() => {
     if (!user) return 0;
     if (isAdmin) {
-      // Total unread messages from all customers
-      return messages.filter(m => m.senderRole === 'customer' && !m.isRead).length;
+      // Total unread messages from all customers (excluding deleted)
+      return messages.filter(m => !m.deleted && m.senderRole === 'customer' && !m.isRead).length;
     } else {
-      // Unread messages from admin to this customer
-      return messages.filter(m => m.customerId === user.id && m.senderRole === 'admin' && !m.isRead).length;
+      // Unread messages from admin to this customer (excluding deleted)
+      return messages.filter(m => !m.deleted && m.customerId === user.id && m.senderRole === 'admin' && !m.isRead).length;
     }
   }, [messages, user, isAdmin]);
 
@@ -256,6 +321,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         unreadCount,
         sendMessage,
         markAsRead,
+        markAsUnread,
+        deleteConversation,
         refreshMessages: fetchMessages,
         getCustomerMessages,
         loading,

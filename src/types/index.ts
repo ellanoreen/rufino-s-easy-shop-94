@@ -61,6 +61,8 @@ export interface Message {
   content: string;
   timestamp: string;
   isRead: boolean;
+  deleted?: boolean;
+  deletedAt?: string;
 }
 
 export interface ConversationSummary {

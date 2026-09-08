@@ -1,4 +1,5 @@
 import pool from './db.js';
+import { hashPassword } from './auth.js';
 
 export const initializeDB = async () => {
   try {
@@ -116,6 +117,43 @@ export const initializeDB = async () => {
         "isRead" BOOLEAN NOT NULL DEFAULT false
       );
     `);
+
+    // Migration: add soft-delete columns (deleted, deleted_at) to messages
+    await pool.query(`
+      ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted BOOLEAN DEFAULT false;
+    `);
+    await pool.query(`
+      ALTER TABLE messages ADD COLUMN IF NOT EXISTS deleted_at TEXT DEFAULT NULL;
+    `);
+
+    // Create users table for secure customer registration and authentication
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        salt TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'customer',
+        created_at TEXT NOT NULL DEFAULT to_char(CURRENT_TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS')
+      );
+    `);
+
+    // Seed default admin and customer with securely hashed passwords if not already present
+    const defaultUsers = [
+      { name: 'Rufino Admin', email: 'admin@rufinos.com', password: 'admin123', role: 'admin' },
+      { name: 'Test Customer', email: 'customer@test.com', password: 'customer123', role: 'customer' }
+    ];
+    for (const u of defaultUsers) {
+      const existing = await pool.query('SELECT id FROM users WHERE email = $1', [u.email]);
+      if (existing.rows.length === 0) {
+        const { hash, salt } = hashPassword(u.password);
+        await pool.query(
+          `INSERT INTO users (name, email, password_hash, salt, role) VALUES ($1, $2, $3, $4, $5)`,
+          [u.name, u.email, hash, salt, u.role]
+        );
+      }
+    }
 
     console.log('Database initialized successfully.');
   } catch (error) {

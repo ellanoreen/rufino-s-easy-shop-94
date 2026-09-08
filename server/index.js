@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { query } from './db.js';
 import { initializeDB } from './init.js';
+import { validatePassword, hashPassword, verifyPassword } from './auth.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -226,11 +227,11 @@ app.get('/api/messages', async (req, res) => {
     let result;
     if (customerId) {
       result = await query(
-        `SELECT * FROM messages WHERE "customerId" = $1 ORDER BY "timestamp" ASC`,
+        `SELECT * FROM messages WHERE "customerId" = $1 AND (deleted IS NOT TRUE) ORDER BY "timestamp" ASC`,
         [customerId]
       );
     } else {
-      result = await query('SELECT * FROM messages ORDER BY "timestamp" ASC');
+      result = await query('SELECT * FROM messages WHERE (deleted IS NOT TRUE) ORDER BY "timestamp" ASC');
     }
     res.json(result.rows);
   } catch (error) {
@@ -267,6 +268,130 @@ app.put('/api/messages/read', async (req, res) => {
     res.json({ updatedCount: result.rowCount, messages: result.rows });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/messages/unread', async (req, res) => {
+  try {
+    const { customerId } = req.body;
+    if (!customerId) {
+      return res.status(400).json({ error: 'customerId is required' });
+    }
+    const result = await query(
+      `UPDATE messages SET "isRead" = false WHERE "customerId" = $1 AND "senderRole" = 'customer' RETURNING *`,
+      [customerId]
+    );
+    res.json({ updatedCount: result.rowCount, messages: result.rows });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/messages/conversation/:customerId', async (req, res) => {
+  try {
+    const { customerId } = req.params;
+    if (!customerId) {
+      return res.status(400).json({ error: 'customerId is required' });
+    }
+    const deletedAt = new Date().toISOString();
+    const result = await query(
+      `UPDATE messages SET deleted = true, deleted_at = $1 WHERE "customerId" = $2 RETURNING *`,
+      [deletedAt, customerId]
+    );
+    res.json({ success: true, archivedCount: result.rowCount, deletedAt });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- Auth Routes ---
+app.post('/api/auth/validate-password', (req, res) => {
+  const { password } = req.body;
+  const result = validatePassword(password);
+  res.json(result);
+});
+
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { name, email, password, confirmPassword } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: 'Name, email, and password are required.' });
+    }
+
+    if (confirmPassword !== undefined && password !== confirmPassword) {
+      return res.status(400).json({ error: 'Passwords do not match.' });
+    }
+
+    // Server-side strong password validation
+    const validation = validatePassword(password);
+    if (!validation.isValid) {
+      return res.status(400).json({
+        error: 'Password does not meet security requirements.',
+        errors: validation.errors,
+        criteria: validation.criteria,
+      });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanName = name.trim();
+
+    // Check for existing user
+    const existing = await query('SELECT id FROM users WHERE LOWER(email) = $1', [cleanEmail]);
+    if (existing.rows.length > 0) {
+      return res.status(409).json({ error: 'An account with this email already exists.' });
+    }
+
+    // Never store plain text passwords. Use scrypt secure hashing with random salt.
+    const { hash, salt } = hashPassword(password);
+
+    const insertResult = await query(
+      `INSERT INTO users (name, email, password_hash, salt, role)
+       VALUES ($1, $2, $3, $4, 'customer')
+       RETURNING id, name, email, role, created_at`,
+      [cleanName, cleanEmail, hash, salt]
+    );
+
+    res.status(201).json({
+      message: 'Account created successfully',
+      user: insertResult.rows[0],
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: error.message || 'Internal server error during registration.' });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required.' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const result = await query('SELECT * FROM users WHERE LOWER(email) = $1', [cleanEmail]);
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'Invalid email or password.' });
+    }
+
+    const user = result.rows[0];
+    const isMatch = verifyPassword(password, user.password_hash, user.salt);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid email or password.' });
+    }
+
+    res.json({
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: error.message || 'Internal server error during login.' });
   }
 });
 

@@ -14,7 +14,7 @@ import AdminMessages from '@/pages/admin/AdminMessages';
 
 // Helper component to test ChatContext hook directly
 const TestChatConsumer = () => {
-  const { messages, conversations, unreadCount, sendMessage, markAsRead } = useChat();
+  const { messages, conversations, unreadCount, sendMessage, markAsRead, markAsUnread, deleteConversation } = useChat();
   return (
     <div>
       <div data-testid="msg-count">{messages.length}</div>
@@ -28,6 +28,12 @@ const TestChatConsumer = () => {
       </button>
       <button data-testid="read-btn" onClick={() => markAsRead('2')}>
         Mark Read
+      </button>
+      <button data-testid="unread-btn" onClick={() => markAsUnread('2')}>
+        Mark Unread
+      </button>
+      <button data-testid="delete-btn" onClick={() => deleteConversation('2')}>
+        Delete
       </button>
     </div>
   );
@@ -81,6 +87,99 @@ describe('Chat & Messages System Integration', () => {
     // Initial seed messages should be present
     expect(Number(screen.getByTestId('msg-count').textContent)).toBeGreaterThan(0);
     expect(Number(screen.getByTestId('conv-count').textContent)).toBeGreaterThan(0);
+  });
+
+  it('supports marking conversations as unread, read, and deleting (soft delete)', async () => {
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      });
+    });
+
+    render(
+      <AuthProvider>
+        <OrderProvider>
+          <ChatProvider>
+            <AdminLoginWrapper>
+              <TestChatConsumer />
+            </AdminLoginWrapper>
+          </ChatProvider>
+        </OrderProvider>
+      </AuthProvider>
+    );
+
+    // Initial state: 1 conversation
+    await waitFor(() => {
+      expect(Number(screen.getByTestId('conv-count').textContent)).toBe(1);
+    });
+
+    // Mark as Read
+    fireEvent.click(screen.getByTestId('read-btn'));
+    await waitFor(() => {
+      expect(Number(screen.getByTestId('unread-count').textContent)).toBe(0);
+    });
+
+    // Mark as Unread
+    fireEvent.click(screen.getByTestId('unread-btn'));
+    await waitFor(() => {
+      expect(Number(screen.getByTestId('unread-count').textContent)).toBeGreaterThan(0);
+    });
+
+    // Soft delete conversation
+    fireEvent.click(screen.getByTestId('delete-btn'));
+    await waitFor(() => {
+      expect(Number(screen.getByTestId('conv-count').textContent)).toBe(0);
+    });
+  });
+
+  it('renders dropdown options with Mark as Unread/Read and Delete in AdminMessages', async () => {
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      });
+    });
+
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <OrderProvider>
+            <ChatProvider>
+              <AdminLoginWrapper>
+                <AdminMessages />
+              </AdminLoginWrapper>
+            </ChatProvider>
+          </OrderProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Customer Messages & Chat/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Test Customer/i).length).toBeGreaterThanOrEqual(1);
+    });
+
+    // Check that option button exists for the conversation
+    const optionBtns = screen.getAllByLabelText(/Options for Test Customer/i);
+    expect(optionBtns.length).toBeGreaterThanOrEqual(1);
+
+    // Open dropdown via keyboard navigation supported by Radix UI in jsdom
+    fireEvent.keyDown(optionBtns[0], { key: 'ArrowDown', code: 'ArrowDown' });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Mark as Unread|Mark as Read/i)).toBeInTheDocument();
+      expect(screen.getByText(/Delete/i)).toBeInTheDocument();
+    });
+
+    // Click Delete to open confirmation dialog
+    const deleteItem = screen.getByText(/Delete/i);
+    fireEvent.click(deleteItem);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Delete Conversation/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Cancel/i })).toBeInTheDocument();
+    });
   });
 
   it('renders Customer Messages page and allows sending messages with order link', async () => {
@@ -172,7 +271,7 @@ describe('Chat & Messages System Integration', () => {
     expect(screen.getByRole('button', { name: /Unread/i })).toBeInTheDocument();
   });
 
-  it('renders visible Message icons with unread badge and no text label Messages in Navbar and AdminLayout', async () => {
+  it('renders visible Message icons with unread badge in customer Navbar and Messages in AdminLayout sidebar', async () => {
     global.fetch = vi.fn().mockImplementation((url: string) => {
       if (url === '/api/messages') {
         return Promise.resolve({
@@ -250,20 +349,22 @@ describe('Chat & Messages System Integration', () => {
       expect(screen.getByRole('button', { name: /Dashboard/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Inventory/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Orders/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Messages/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Reports/i })).toBeInTheDocument();
 
-      // No button should have text label "Messages"
-      const adminTextButtons = screen.queryAllByRole('button', { name: /^Messages$/i });
-      expect(adminTextButtons.length).toBe(0);
-
-      const adminMessageLinks = screen.getAllByTitle(/^Messages/i);
-      expect(adminMessageLinks.length).toBeGreaterThanOrEqual(1);
-      expect(adminMessageLinks[0]).toHaveAttribute('href', '/admin/messages');
-
-      // Ensure sidebar (aside) does not contain messages link
+      // Ensure sidebar (aside) contains messages link pointing to /admin/messages
       const aside = document.querySelector('aside');
       expect(aside).toBeInTheDocument();
-      expect(aside?.querySelector('a[href="/admin/messages"]')).toBeNull();
+      const asideMessageLink = aside?.querySelector('a[href="/admin/messages"]');
+      expect(asideMessageLink).not.toBeNull();
+      expect(asideMessageLink?.textContent).toContain('Messages');
+
+      // Top headers (both desktop and mobile) should NOT contain a link to /admin/messages
+      const headers = document.querySelectorAll('header');
+      expect(headers.length).toBeGreaterThanOrEqual(1);
+      headers.forEach(header => {
+        expect(header.querySelector('a[href="/admin/messages"]')).toBeNull();
+      });
     });
   });
 });

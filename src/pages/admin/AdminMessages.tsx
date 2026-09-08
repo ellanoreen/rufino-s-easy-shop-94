@@ -6,6 +6,24 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { toast } from '@/hooks/use-toast';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   MessageSquare,
   Search,
@@ -20,11 +38,14 @@ import {
   ExternalLink,
   Package,
   Sparkles,
-  Inbox
+  Inbox,
+  MoreVertical,
+  Mail,
+  Trash2,
 } from 'lucide-react';
 
 export default function AdminMessages() {
-  const { conversations, getCustomerMessages, sendMessage, markAsRead } = useChat();
+  const { conversations, getCustomerMessages, sendMessage, markAsRead, markAsUnread, deleteConversation } = useChat();
   const { allOrders } = useOrders();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -36,7 +57,9 @@ export default function AdminMessages() {
   const [activeFilter, setActiveFilter] = useState<'all' | 'unread' | 'orders'>('all');
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ customerId: string; customerName: string } | null>(null);
 
+  const prevSelectedIdRef = useRef<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Sync selectedCustomerId with URL param if provided
@@ -49,12 +72,70 @@ export default function AdminMessages() {
     }
   }, [searchParams, conversations]);
 
-  // Mark as read when admin opens a conversation
+  // Mark as read when admin explicitly switches to a conversation
   useEffect(() => {
-    if (selectedCustomerId) {
+    if (selectedCustomerId && selectedCustomerId !== prevSelectedIdRef.current) {
+      prevSelectedIdRef.current = selectedCustomerId;
       markAsRead(selectedCustomerId);
     }
   }, [selectedCustomerId, markAsRead]);
+
+  const handleToggleReadStatus = async (customerId: string, customerName: string, isCurrentlyUnread: boolean) => {
+    try {
+      if (isCurrentlyUnread) {
+        await markAsRead(customerId);
+        toast({
+          title: 'Marked as read',
+          description: `Conversation with ${customerName} has been marked as read.`,
+        });
+      } else {
+        await markAsUnread(customerId);
+        toast({
+          title: 'Marked as unread',
+          description: `Conversation with ${customerName} has been marked as unread.`,
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: err?.message || 'Failed to update conversation status.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    const { customerId, customerName } = deleteTarget;
+    try {
+      await deleteConversation(customerId);
+      toast({
+        title: 'Conversation deleted',
+        description: `Conversation with ${customerName} has been removed from active messages.`,
+      });
+
+      if (selectedCustomerId === customerId) {
+        const remaining = conversations.filter(c => c.customerId !== customerId);
+        if (remaining.length > 0) {
+          setSelectedCustomerId(remaining[0].customerId);
+          setSearchParams({ customerId: remaining[0].customerId });
+          prevSelectedIdRef.current = remaining[0].customerId;
+        } else {
+          setSelectedCustomerId(null);
+          setSearchParams({});
+          prevSelectedIdRef.current = null;
+        }
+      }
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: err?.message || 'Failed to delete conversation.',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleteTarget(null);
+    }
+  };
 
   const activeConversation = useMemo(() => {
     if (!selectedCustomerId) return null;
@@ -202,13 +283,22 @@ export default function AdminMessages() {
               filteredConversations.map(conv => {
                 const isSelected = conv.customerId === selectedCustomerId;
                 return (
-                  <button
+                  <div
                     key={conv.customerId}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => {
                       setSelectedCustomerId(conv.customerId);
                       setSearchParams({ customerId: conv.customerId });
                     }}
-                    className={`w-full text-left p-4 transition-all flex items-start gap-3 relative ${
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setSelectedCustomerId(conv.customerId);
+                        setSearchParams({ customerId: conv.customerId });
+                      }
+                    }}
+                    className={`w-full text-left p-4 transition-all flex items-start gap-3 relative cursor-pointer select-none ${
                       isSelected
                         ? 'bg-blue-50/70 border-l-4 border-l-blue-600'
                         : 'hover:bg-slate-100/60 bg-transparent'
@@ -223,9 +313,55 @@ export default function AdminMessages() {
                         <span className={`text-sm truncate ${conv.unreadCount > 0 ? 'font-bold text-slate-900' : 'font-semibold text-slate-800'}`}>
                           {conv.customerName}
                         </span>
-                        <span className="text-[11px] text-slate-400 shrink-0">
-                          {formatTime(conv.lastMessage.timestamp)}
-                        </span>
+                        <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <span className="text-[11px] text-slate-400">
+                            {formatTime(conv.lastMessage.timestamp)}
+                          </span>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 p-0 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-full"
+                                aria-label={`Options for ${conv.customerName}`}
+                              >
+                                <MoreVertical className="h-3.5 w-3.5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-44 z-50">
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleReadStatus(conv.customerId, conv.customerName, conv.unreadCount > 0);
+                                }}
+                                className="gap-2 cursor-pointer text-xs"
+                              >
+                                {conv.unreadCount > 0 ? (
+                                  <>
+                                    <CheckCheck className="h-3.5 w-3.5 text-blue-600" />
+                                    <span>Mark as Read</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Mail className="h-3.5 w-3.5 text-amber-600" />
+                                    <span>Mark as Unread</span>
+                                  </>
+                                )}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteTarget({ customerId: conv.customerId, customerName: conv.customerName });
+                                }}
+                                className="gap-2 cursor-pointer text-xs text-red-600 focus:text-red-600 focus:bg-red-50"
+                              >
+                                <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                                <span>Delete</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
 
                       <p className={`text-xs truncate ${conv.unreadCount > 0 ? 'font-semibold text-slate-900' : 'text-slate-500'}`}>
@@ -246,7 +382,7 @@ export default function AdminMessages() {
                         )}
                       </div>
                     </div>
-                  </button>
+                  </div>
                 );
               })
             )}
@@ -269,15 +405,58 @@ export default function AdminMessages() {
                   </div>
                 </div>
 
-                {relatedOrder && (
-                  <Link to="/admin/orders">
-                    <Button variant="outline" size="sm" className="gap-2 text-xs border-slate-200">
-                      <ShoppingBag className="w-3.5 h-3.5 text-blue-600" />
-                      <span>View Order #{relatedOrder.id.slice(0, 8)}...</span>
-                      <ExternalLink className="w-3 h-3 text-slate-400" />
-                    </Button>
-                  </Link>
-                )}
+                <div className="flex items-center gap-2">
+                  {relatedOrder && (
+                    <Link to="/admin/orders">
+                      <Button variant="outline" size="sm" className="gap-2 text-xs border-slate-200">
+                        <ShoppingBag className="w-3.5 h-3.5 text-blue-600" />
+                        <span className="hidden sm:inline">View Order #{relatedOrder.id.slice(0, 8)}...</span>
+                        <span className="sm:hidden">Order</span>
+                        <ExternalLink className="w-3 h-3 text-slate-400" />
+                      </Button>
+                    </Link>
+                  )}
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-2.5 gap-1.5 text-xs text-slate-600 border-slate-200 hover:text-slate-900"
+                        aria-label="Conversation Actions"
+                      >
+                        <MoreVertical className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Actions</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44 z-50">
+                      <DropdownMenuItem
+                        onClick={() => handleToggleReadStatus(activeConversation.customerId, activeConversation.customerName, activeConversation.unreadCount > 0)}
+                        className="gap-2 cursor-pointer text-xs"
+                      >
+                        {activeConversation.unreadCount > 0 ? (
+                          <>
+                            <CheckCheck className="h-3.5 w-3.5 text-blue-600" />
+                            <span>Mark as Read</span>
+                          </>
+                        ) : (
+                          <>
+                            <Mail className="h-3.5 w-3.5 text-amber-600" />
+                            <span>Mark as Unread</span>
+                          </>
+                        )}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => setDeleteTarget({ customerId: activeConversation.customerId, customerName: activeConversation.customerName })}
+                        className="gap-2 cursor-pointer text-xs text-red-600 focus:text-red-600 focus:bg-red-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                        <span>Delete</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
 
               {/* Related Order Quick Card Bar */}
@@ -383,6 +562,28 @@ export default function AdminMessages() {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Alert Dialog */}
+      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Conversation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the conversation with <span className="font-semibold text-foreground">{deleteTarget?.customerName}</span>?
+              This conversation will be archived and removed from your active inbox. Historical records are preserved, and customer accounts or orders will not be affected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

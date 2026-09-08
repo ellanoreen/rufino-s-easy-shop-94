@@ -7,12 +7,11 @@ import { useChat } from '@/context/ChatContext';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
 
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-
 const navItems = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/admin/inventory', label: 'Inventory', icon: Warehouse },
   { to: '/admin/orders', label: 'Orders', icon: ShoppingCart },
+  { to: '/admin/messages', label: 'Messages', icon: MessageSquare },
   { to: '/admin/reports', label: 'Reports', icon: FileText },
 ];
 
@@ -60,6 +59,9 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 {item.label === 'Orders' && pendingCount > 0 && (
                   <Badge className="ml-auto bg-accent text-accent-foreground text-xs">{pendingCount}</Badge>
                 )}
+                {item.label === 'Messages' && unreadCount > 0 && (
+                  <Badge className="ml-auto bg-red-600 text-white text-xs">{unreadCount}</Badge>
+                )}
               </Button>
             </Link>
           ))}
@@ -82,26 +84,6 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             Rufino's Furniture <span className="text-foreground font-semibold">Admin Workspace</span>
           </div>
           <div className="flex items-center gap-3">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link to="/admin/messages" className="relative" title="Messages" aria-label="Messages">
-                    <Button variant="ghost" size="icon" className="relative">
-                      <MessageSquare className="h-5 w-5 text-slate-700" />
-                      {unreadCount > 0 && (
-                        <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-white p-0 text-xs font-bold shadow-sm animate-in zoom-in">
-                          {unreadCount}
-                        </Badge>
-                      )}
-                    </Button>
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Messages</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <div className="h-4 w-px bg-border"></div>
             <div className="text-xs text-muted-foreground">
               Signed in as <span className="font-semibold text-foreground">{user.name}</span>
             </div>
@@ -117,21 +99,9 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               className="h-9 w-auto object-contain"
             />
           </Link>
-          <div className="flex items-center gap-1">
-            <Link to="/admin/messages" className="relative" title="Messages" aria-label="Messages">
-              <Button variant="ghost" size="icon" className="relative">
-                <MessageSquare className="h-5 w-5" />
-                {unreadCount > 0 && (
-                  <Badge className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-white p-0 text-xs font-bold shadow-sm">
-                    {unreadCount}
-                  </Badge>
-                )}
-              </Button>
-            </Link>
-            <Button variant="ghost" size="icon" onClick={() => setMobileOpen(!mobileOpen)}>
-              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
-          </div>
+          <Button variant="ghost" size="icon" onClick={() => setMobileOpen(!mobileOpen)}>
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
         </header>
 
         {mobileOpen && (
@@ -142,6 +112,9 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                   <item.icon className="h-4 w-4" />{item.label}
                   {item.label === 'Orders' && pendingCount > 0 && (
                     <Badge className="ml-auto bg-accent text-accent-foreground text-xs">{pendingCount}</Badge>
+                  )}
+                  {item.label === 'Messages' && unreadCount > 0 && (
+                    <Badge className="ml-auto bg-red-600 text-white text-xs">{unreadCount}</Badge>
                   )}
                 </Button>
               </Link>
