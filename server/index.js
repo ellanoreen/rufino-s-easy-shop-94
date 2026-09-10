@@ -126,19 +126,25 @@ app.delete('/api/products/:id', async (req, res) => {
 // --- Orders Routes ---
 app.get('/api/orders', async (req, res) => {
   try {
-    const { userId } = req.query;
-    let result;
-    if (userId) {
-      // Customer: only return their own orders
-      result = await query(
-        `SELECT * FROM orders WHERE user_id = $1 ORDER BY date DESC`,
-        [userId]
-      );
-    } else {
-      // Admin or legacy: return all orders
-      result = await query('SELECT * FROM orders ORDER BY date DESC');
+    const { userId, admin } = req.query;
+
+    if (admin === 'true') {
+      // Admin path: returns ALL orders (no user filter)
+      const result = await query('SELECT * FROM orders ORDER BY date DESC');
+      return res.json(result.rows);
     }
-    res.json(result.rows);
+
+    // Customer path: userId is REQUIRED
+    if (!userId || String(userId).trim() === '') {
+      return res.status(400).json({ error: 'userId is required.' });
+    }
+
+    // Return ONLY orders that belong to this specific customer
+    const result = await query(
+      `SELECT * FROM orders WHERE user_id = $1 ORDER BY date DESC`,
+      [String(userId)]
+    );
+    return res.json(result.rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

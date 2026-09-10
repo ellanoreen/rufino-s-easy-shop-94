@@ -13,25 +13,20 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const MOCK_USERS: (User & { password: string })[] = [
-  { id: '1', email: 'admin@rufinos.com', name: 'Rufino Admin', role: 'admin', password: 'admin123' },
-  { id: '2', email: 'customer@test.com', name: 'Test Customer', role: 'customer', password: 'customer123' },
+// Fallback credentials for offline/test environments where the Express server
+// is not running. These are NEVER used when the server is reachable — the
+// server always returns the real DB UUID so that order scoping works correctly.
+const OFFLINE_FALLBACK_USERS: (User & { password: string })[] = [
+  { id: 'admin-offline', email: 'admin@rufinos.com', name: 'Rufino Admin', role: 'admin', password: 'admin123' },
+  { id: 'customer-offline', email: 'customer@test.com', name: 'Test Customer', role: 'customer', password: 'customer123' },
 ];
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
 
   const login = useCallback((email: string, password: string): boolean | Promise<boolean> => {
-    // 1. Instant match against seeded mock users (preserves sync behavior for tests & admin)
-    const found = MOCK_USERS.find(u => u.email === email && u.password === password);
-    if (found) {
-      const { password: _, ...userData } = found;
-      setUser(userData);
-      toast({ title: 'Welcome back!', description: `Logged in as ${userData.name}` });
-      return true;
-    }
-
-    // 2. Attempt backend login via /api/auth/login
+    // Always attempt backend login first — the server returns the real DB UUID
+    // which is required for order scoping to work correctly.
     return (async () => {
       try {
         const res = await fetch('/api/auth/login', {
@@ -48,8 +43,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return true;
           }
         }
+
+        // Server reachable but credentials wrong
+        if (res.status === 401) {
+          toast({ title: 'Login failed', description: 'Invalid email or password', variant: 'destructive' });
+          return false;
+        }
       } catch {
-        // network / offline fallback
+        // Server unreachable — fall back to offline credentials so the app
+        // still works in dev without a running Postgres instance.
+        const found = OFFLINE_FALLBACK_USERS.find(u => u.email === email && u.password === password);
+        if (found) {
+          const { password: _, ...userData } = found;
+          setUser(userData);
+          toast({
+            title: 'Welcome back! (offline mode)',
+            description: `Logged in as ${userData.name}`,
+          });
+          return true;
+        }
       }
 
       toast({ title: 'Login failed', description: 'Invalid email or password', variant: 'destructive' });

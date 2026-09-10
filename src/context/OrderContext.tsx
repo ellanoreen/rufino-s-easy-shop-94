@@ -60,15 +60,18 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [rawOrders, setRawOrders] = useState<Order[]>([]);
   const [allRawOrders, setAllRawOrders] = useState<Order[]>([]);
 
-  // Fetch customer-scoped orders (when a customer is logged in)
+  // Fetch orders whenever the logged-in user changes
   useEffect(() => {
+    // Clear immediately when logged out so no stale data bleeds into next session
     if (!user) {
       setRawOrders([]);
+      setAllRawOrders([]);
       return;
     }
+
     if (isAdmin) {
-      // Admin fetch: no userId filter — gets ALL orders
-      fetch('/api/orders')
+      // Admin fetch: pass ?admin=true to get ALL orders
+      fetch('/api/orders?admin=true')
         .then(res => res.json())
         .then((data: any[]) => {
           const normalized = data.map(normalizeOrder);
@@ -77,11 +80,17 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         })
         .catch(err => console.error('Failed to fetch all orders (admin):', err));
     } else {
-      // Customer fetch: scoped to their user_id only
+      // Customer fetch: scoped strictly to their user_id
       fetch(`/api/orders?userId=${encodeURIComponent(user.id)}`)
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
         .then((data: any[]) => {
-          setRawOrders(data.map(normalizeOrder));
+          const normalized = data.map(normalizeOrder);
+          // Defense-in-depth: discard any order that doesn't belong to this user
+          const mine = normalized.filter(o => o.userId === user.id || o.userId === String(user.id));
+          setRawOrders(mine);
         })
         .catch(err => console.error('Failed to fetch orders:', err));
     }
