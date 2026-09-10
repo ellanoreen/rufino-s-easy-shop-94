@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Truck, Star, Wrench, MessageSquare, CheckCircle2, ThumbsUp } from 'lucide-react';
+import { Truck, Star, Wrench, MessageSquare, CheckCircle2, ThumbsUp, CalendarCheck } from 'lucide-react';
 import { useOrders } from '@/context/OrderContext';
 import { Order } from '@/types';
 
@@ -33,9 +33,17 @@ const OrderFeedbackForm = ({ order, submitFeedback }: { order: Order; submitFeed
     return (
       <div className="mt-4 pt-4 border-t border-green-200 dark:border-green-800">
         <div className="rounded-xl bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <ThumbsUp className="h-4 w-4 text-green-600 dark:text-green-400" />
-            <p className="text-sm font-semibold text-green-700 dark:text-green-300">Your Feedback</p>
+          <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <ThumbsUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <p className="text-sm font-semibold text-green-700 dark:text-green-300">Your Feedback</p>
+            </div>
+            {order.feedbackDate && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <CalendarCheck className="h-3.5 w-3.5" />
+                <span>Submitted {new Date(order.feedbackDate).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-1.5 mb-2">
             {[1, 2, 3, 4, 5].map(star => (
@@ -170,7 +178,7 @@ const Orders = () => {
           <Card
             key={order.id}
             className={`p-6 transition-shadow ${
-              order.status === 'Delivered' && !order.rating
+              order.status !== 'Cancelled' && !order.rating
                 ? 'ring-2 ring-primary/20 shadow-sm'
                 : ''
             }`}
@@ -231,8 +239,8 @@ const Orders = () => {
               </div>
             </div>
 
-            {/* Feedback section — only shown for Delivered orders */}
-            {order.status === 'Delivered' && (
+            {/* Feedback section — available immediately after checkout for all non-Cancelled orders */}
+            {order.status !== 'Cancelled' && (
               <OrderFeedbackForm order={order} submitFeedback={submitFeedback} />
             )}
           </Card>

@@ -43,6 +43,10 @@ const normalizeOrder = (o: any): Order => {
     item.userId = item.user_id;
     delete item.user_id;
   }
+  if ('feedback_date' in item) {
+    item.feedbackDate = item.feedback_date || undefined;
+    delete item.feedback_date;
+  }
   return {
     ...item,
     total: Number(item.total),

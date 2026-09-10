@@ -66,12 +66,15 @@ export const initializeDB = async () => {
       ALTER TABLE products ADD COLUMN IF NOT EXISTS installation_fee NUMERIC DEFAULT 0;
     `);
 
-    // Migration: add rating and feedback columns if missing
+    // Migration: add rating, feedback, and feedback_date columns if missing
     await pool.query(`
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS rating INTEGER;
     `);
     await pool.query(`
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS feedback TEXT;
+    `);
+    await pool.query(`
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS feedback_date TEXT DEFAULT NULL;
     `);
 
     // Migration: add installment_plan column if missing
@@ -99,6 +102,11 @@ export const initializeDB = async () => {
     `);
     await pool.query(`
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS deleted_at TEXT DEFAULT NULL;
+    `);
+
+    // Migration: add user_id column to orders for customer-scoped order filtering
+    await pool.query(`
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS user_id TEXT DEFAULT NULL;
     `);
 
     // Create messages table for customer-to-admin chat

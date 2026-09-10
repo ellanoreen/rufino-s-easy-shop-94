@@ -25,11 +25,13 @@ export interface CartItem {
 
 export interface Order {
   id: string;
+  userId?: string;
   items: CartItem[];
   total: number;
   status: 'Pending' | 'Confirmed' | 'Out for Delivery' | 'Delivered' | 'Cancelled';
   rating?: number;
   feedback?: string;
+  feedbackDate?: string;
   customerName: string;
   address: string;
   contact: string;

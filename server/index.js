@@ -199,7 +199,7 @@ app.put('/api/orders/:id/feedback', async (req, res) => {
       return res.status(401).json({ error: 'Unauthorized: userId is required.' });
     }
 
-    // 2. Fetch the order to validate ownership, status, and prior submission
+    // 2. Fetch the order to validate ownership and prior submission
     const orderResult = await query('SELECT * FROM orders WHERE id = $1', [id]);
     if (orderResult.rows.length === 0) {
       return res.status(404).json({ error: 'Order not found.' });
@@ -211,9 +211,9 @@ app.put('/api/orders/:id/feedback', async (req, res) => {
       return res.status(403).json({ error: 'Forbidden: You can only rate your own orders.' });
     }
 
-    // 4. Only allow feedback on Delivered orders
-    if (order.status !== 'Delivered') {
-      return res.status(400).json({ error: 'Feedback can only be submitted for Delivered orders.' });
+    // 4. Cancelled orders cannot be rated
+    if (order.status === 'Cancelled') {
+      return res.status(400).json({ error: 'Cancelled orders cannot be rated.' });
     }
 
     // 5. Prevent re-submission — one feedback per order
@@ -227,9 +227,11 @@ app.put('/api/orders/:id/feedback', async (req, res) => {
       return res.status(400).json({ error: 'Rating must be an integer between 1 and 5.' });
     }
 
+    // 7. Save rating, feedback text, and the submission timestamp
+    const feedbackDate = new Date().toISOString();
     const result = await query(
-      `UPDATE orders SET rating=$1, feedback=$2 WHERE id = $3 RETURNING *`,
-      [ratingNum, feedback || '', id]
+      `UPDATE orders SET rating=$1, feedback=$2, feedback_date=$3 WHERE id = $4 RETURNING *`,
+      [ratingNum, feedback || '', feedbackDate, id]
     );
     res.json(result.rows[0]);
   } catch (error) {
