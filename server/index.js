@@ -126,7 +126,18 @@ app.delete('/api/products/:id', async (req, res) => {
 // --- Orders Routes ---
 app.get('/api/orders', async (req, res) => {
   try {
-    const result = await query('SELECT * FROM orders ORDER BY date DESC');
+    const { userId } = req.query;
+    let result;
+    if (userId) {
+      // Customer: only return their own orders
+      result = await query(
+        `SELECT * FROM orders WHERE user_id = $1 ORDER BY date DESC`,
+        [userId]
+      );
+    } else {
+      // Admin or legacy: return all orders
+      result = await query('SELECT * FROM orders ORDER BY date DESC');
+    }
     res.json(result.rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -135,12 +146,12 @@ app.get('/api/orders', async (req, res) => {
 
 app.post('/api/orders', async (req, res) => {
   try {
-    const { items, total, status, customerName, address, contact, paymentMethod, date, expectedDeliveryDate, installmentPlan, installationSelected, installationFee } = req.body;
+    const { items, total, status, customerName, address, contact, paymentMethod, date, expectedDeliveryDate, installmentPlan, installationSelected, installationFee, userId } = req.body;
     const result = await query(
-      `INSERT INTO orders (items, total, status, "customerName", address, contact, "paymentMethod", date, "expectedDeliveryDate", installment_plan, installation_selected, installation_fee)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+      `INSERT INTO orders (items, total, status, "customerName", address, contact, "paymentMethod", date, "expectedDeliveryDate", installment_plan, installation_selected, installation_fee, user_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
       [JSON.stringify(items), total, status, customerName, address, contact, paymentMethod, date, expectedDeliveryDate,
-       installmentPlan ? JSON.stringify(installmentPlan) : null, installationSelected ?? false, installationFee ?? 0]
+       installmentPlan ? JSON.stringify(installmentPlan) : null, installationSelected ?? false, installationFee ?? 0, userId || null]
     );
     res.json(result.rows[0]);
   } catch (error) {
@@ -181,10 +192,44 @@ app.delete('/api/orders/:id', async (req, res) => {
 app.put('/api/orders/:id/feedback', async (req, res) => {
   try {
     const { id } = req.params;
-    const { rating, feedback } = req.body;
+    const { rating, feedback, userId } = req.body;
+
+    // 1. Require a userId to identify the submitting customer
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized: userId is required.' });
+    }
+
+    // 2. Fetch the order to validate ownership, status, and prior submission
+    const orderResult = await query('SELECT * FROM orders WHERE id = $1', [id]);
+    if (orderResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found.' });
+    }
+    const order = orderResult.rows[0];
+
+    // 3. Only the customer who placed the order may submit feedback
+    if (order.user_id !== String(userId)) {
+      return res.status(403).json({ error: 'Forbidden: You can only rate your own orders.' });
+    }
+
+    // 4. Only allow feedback on Delivered orders
+    if (order.status !== 'Delivered') {
+      return res.status(400).json({ error: 'Feedback can only be submitted for Delivered orders.' });
+    }
+
+    // 5. Prevent re-submission — one feedback per order
+    if (order.rating !== null && order.rating !== undefined) {
+      return res.status(409).json({ error: 'Feedback has already been submitted for this order.' });
+    }
+
+    // 6. Validate rating range
+    const ratingNum = Number(rating);
+    if (!Number.isInteger(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+      return res.status(400).json({ error: 'Rating must be an integer between 1 and 5.' });
+    }
+
     const result = await query(
       `UPDATE orders SET rating=$1, feedback=$2 WHERE id = $3 RETURNING *`,
-      [rating, feedback, id]
+      [ratingNum, feedback || '', id]
     );
     res.json(result.rows[0]);
   } catch (error) {

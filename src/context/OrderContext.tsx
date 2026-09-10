@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { Order, CartItem } from '@/types';
+import { useAuth } from '@/context/AuthContext';
+import { toast } from '@/hooks/use-toast';
 
 interface OrderContextType {
   orders: Order[];
@@ -37,6 +39,10 @@ const normalizeOrder = (o: any): Order => {
     item.installationFee = Number(item.installation_fee);
     delete item.installation_fee;
   }
+  if ('user_id' in item) {
+    item.userId = item.user_id;
+    delete item.user_id;
+  }
   return {
     ...item,
     total: Number(item.total),
@@ -46,16 +52,37 @@ const normalizeOrder = (o: any): Order => {
 };
 
 export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isAdmin } = useAuth();
   const [rawOrders, setRawOrders] = useState<Order[]>([]);
+  const [allRawOrders, setAllRawOrders] = useState<Order[]>([]);
 
+  // Fetch customer-scoped orders (when a customer is logged in)
   useEffect(() => {
-    fetch('/api/orders')
-      .then(res => res.json())
-      .then((data: any[]) => {
-        setRawOrders(data.map(normalizeOrder));
-      })
-      .catch(err => console.error('Failed to fetch orders:', err));
-  }, []);
+    if (!user) {
+      setRawOrders([]);
+      return;
+    }
+    if (isAdmin) {
+      // Admin fetch: no userId filter — gets ALL orders
+      fetch('/api/orders')
+        .then(res => res.json())
+        .then((data: any[]) => {
+          const normalized = data.map(normalizeOrder);
+          setAllRawOrders(normalized);
+          setRawOrders(normalized);
+        })
+        .catch(err => console.error('Failed to fetch all orders (admin):', err));
+    } else {
+      // Customer fetch: scoped to their user_id only
+      fetch(`/api/orders?userId=${encodeURIComponent(user.id)}`)
+        .then(res => res.json())
+        .then((data: any[]) => {
+          setRawOrders(data.map(normalizeOrder));
+        })
+        .catch(err => console.error('Failed to fetch orders:', err));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, isAdmin]);
 
   const placeOrder = useCallback(async (
     items: CartItem[],
@@ -80,6 +107,7 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         installationFee: installationFee ?? 0,
         date: new Date().toISOString().split('T')[0],
         expectedDeliveryDate: getExpectedDeliveryDate(),
+        userId: user?.id || null,
       };
       
       const res = await fetch('/api/orders', {
@@ -88,11 +116,15 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         body: JSON.stringify(newOrderData),
       });
       const newOrder = await res.json();
-      setRawOrders(prev => [normalizeOrder(newOrder), ...prev]);
+      const normalized = normalizeOrder(newOrder);
+      setRawOrders(prev => [normalized, ...prev]);
+      if (isAdmin) {
+        setAllRawOrders(prev => [normalized, ...prev]);
+      }
     } catch (err) {
       console.error('Failed to place order:', err);
     }
-  }, []);
+  }, [user, isAdmin]);
 
   const updateOrderStatus = useCallback(async (orderId: string, status: Order['status']) => {
     try {
@@ -102,7 +134,9 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         body: JSON.stringify({ status }),
       });
       const updatedOrder = await res.json();
-      setRawOrders(prev => prev.map(o => o.id === orderId ? normalizeOrder(updatedOrder) : o));
+      const normalized = normalizeOrder(updatedOrder);
+      setRawOrders(prev => prev.map(o => o.id === orderId ? normalized : o));
+      setAllRawOrders(prev => prev.map(o => o.id === orderId ? normalized : o));
     } catch (err) {
       console.error('Failed to update order status:', err);
     }
@@ -114,42 +148,59 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (!res.ok) {
         throw new Error(`Failed to delete order (${res.status})`);
       }
-      setRawOrders(prev =>
-        prev.map(o =>
-          o.id === orderId
-            ? { ...o, deleted: true, deletedAt: new Date().toISOString().split('T')[0] }
-            : o
-        )
-      );
+      const softDelete = (o: Order) =>
+        o.id === orderId
+          ? { ...o, deleted: true, deletedAt: new Date().toISOString().split('T')[0] }
+          : o;
+      setRawOrders(prev => prev.map(softDelete));
+      setAllRawOrders(prev => prev.map(softDelete));
     } catch (err) {
       console.error('Failed to delete order on server:', err);
       // Soft-delete locally in case of offline fallback
-      setRawOrders(prev =>
-        prev.map(o =>
-          o.id === orderId
-            ? { ...o, deleted: true, deletedAt: new Date().toISOString().split('T')[0] }
-            : o
-        )
-      );
+      const softDelete = (o: Order) =>
+        o.id === orderId
+          ? { ...o, deleted: true, deletedAt: new Date().toISOString().split('T')[0] }
+          : o;
+      setRawOrders(prev => prev.map(softDelete));
+      setAllRawOrders(prev => prev.map(softDelete));
     }
   }, []);
 
   const submitFeedback = useCallback(async (orderId: string, rating: number, feedback: string) => {
+    if (!user) {
+      toast({ title: 'Not logged in', description: 'You must be logged in to submit feedback.', variant: 'destructive' });
+      return;
+    }
     try {
       const res = await fetch(`/api/orders/${orderId}/feedback`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rating, feedback }),
+        body: JSON.stringify({ rating, feedback, userId: user.id }),
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        toast({
+          title: 'Could not submit feedback',
+          description: errData.error || 'Something went wrong.',
+          variant: 'destructive',
+        });
+        return;
+      }
       const updatedOrder = await res.json();
-      setRawOrders(prev => prev.map(o => o.id === orderId ? normalizeOrder(updatedOrder) : o));
+      const normalized = normalizeOrder(updatedOrder);
+      setRawOrders(prev => prev.map(o => o.id === orderId ? normalized : o));
+      setAllRawOrders(prev => prev.map(o => o.id === orderId ? normalized : o));
+      toast({ title: 'Feedback submitted!', description: 'Thank you for your review.' });
     } catch (err) {
       console.error('Failed to submit feedback:', err);
+      toast({ title: 'Error', description: 'Failed to submit feedback. Please try again.', variant: 'destructive' });
     }
-  }, []);
+  }, [user]);
 
+  // `orders` — non-deleted orders visible to the current user
   const orders = useMemo(() => rawOrders.filter(o => !o.deleted), [rawOrders]);
-  const allOrders = rawOrders;
+  // `allOrders` — ALL orders (including deleted) for admin analytics/reports
+  const allOrders = allRawOrders;
 
   return (
     <OrderContext.Provider value={{ orders, allOrders, placeOrder, updateOrderStatus, deleteOrder, submitFeedback }}>
