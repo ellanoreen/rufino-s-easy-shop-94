@@ -1,10 +1,40 @@
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { CartItem, Product } from '@/types';
+import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
-export const getCartItemKey = (item: { product: { id: string }; selectedSize?: string; selectedColor?: string }) => {
-  return `${item.product.id}-${item.selectedSize || ''}-${item.selectedColor || ''}`;
+// ── localStorage helpers ────────────────────────────────────────────────────
+
+const cartKey = (userId: string) => `cart_${userId}`;
+
+const loadCart = (userId: string | null): CartItem[] => {
+  if (!userId) return [];
+  try {
+    const raw = localStorage.getItem(cartKey(userId));
+    return raw ? (JSON.parse(raw) as CartItem[]) : [];
+  } catch {
+    return [];
+  }
 };
+
+const saveCart = (userId: string | null, items: CartItem[]) => {
+  if (!userId) return;
+  try {
+    localStorage.setItem(cartKey(userId), JSON.stringify(items));
+  } catch {
+    // Storage quota exceeded or private-mode restriction — fail silently
+  }
+};
+
+// ── Key helpers ─────────────────────────────────────────────────────────────
+
+export const getCartItemKey = (item: {
+  product: { id: string };
+  selectedSize?: string;
+  selectedColor?: string;
+}) => `${item.product.id}-${item.selectedSize || ''}-${item.selectedColor || ''}`;
+
+// ── Context type ─────────────────────────────────────────────────────────────
 
 interface CartContextType {
   items: CartItem[];
@@ -28,9 +58,35 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+// ── Provider ─────────────────────────────────────────────────────────────────
+
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
+
+  // Initialise from the current user's localStorage key right away
+  const [items, setItems] = useState<CartItem[]>(() => loadCart(userId));
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+
+  // Keep a ref so the save-effect always sees the latest userId without
+  // being listed as a dependency of the mutation callbacks.
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
+
+  // ── When the logged-in user changes, swap the cart ─────────────────────────
+  useEffect(() => {
+    const saved = loadCart(userId);
+    setItems(saved);
+    // Reset selection state; the new user has their own items
+    setSelectedKeys(saved.map(getCartItemKey));
+  }, [userId]);
+
+  // ── Persist to localStorage whenever items change ──────────────────────────
+  useEffect(() => {
+    saveCart(userIdRef.current, items);
+  }, [items]);
+
+  // ── Mutations ──────────────────────────────────────────────────────────────
 
   const addToCart = useCallback((product: Product, selectedSize?: string, selectedColor?: string) => {
     if (product.stock === 0) {
@@ -50,8 +106,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const removeFromCart = useCallback((productId: string, selectedSize?: string, selectedColor?: string) => {
-    setItems(prev => {
-      return prev.filter(i => {
+    setItems(prev =>
+      prev.filter(i => {
         if (selectedSize !== undefined || selectedColor !== undefined) {
           return !(
             i.product.id === productId &&
@@ -60,8 +116,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           );
         }
         return i.product.id !== productId;
-      });
-    });
+      })
+    );
     setSelectedKeys(prev => {
       if (selectedSize !== undefined || selectedColor !== undefined) {
         const targetKey = `${productId}-${selectedSize || ''}-${selectedColor || ''}`;
@@ -88,9 +144,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSelectedKeys(prev => (prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]));
   }, []);
 
-  const isAllSelected = useMemo(() => {
-    return items.length > 0 && items.every(i => selectedKeys.includes(getCartItemKey(i)));
-  }, [items, selectedKeys]);
+  const isAllSelected = useMemo(
+    () => items.length > 0 && items.every(i => selectedKeys.includes(getCartItemKey(i))),
+    [items, selectedKeys]
+  );
 
   const toggleSelectAll = useCallback(() => {
     if (isAllSelected) {
@@ -119,17 +176,22 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSelectedKeys(prev => prev.filter(k => !keysToRemove.has(k)));
   }, []);
 
-  const selectedItems = useMemo(() => {
-    return items.filter(i => selectedKeys.includes(getCartItemKey(i)));
-  }, [items, selectedKeys]);
+  // ── Derived values ─────────────────────────────────────────────────────────
 
-  const selectedTotal = useMemo(() => {
-    return selectedItems.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
-  }, [selectedItems]);
+  const selectedItems = useMemo(
+    () => items.filter(i => selectedKeys.includes(getCartItemKey(i))),
+    [items, selectedKeys]
+  );
 
-  const selectedItemCount = useMemo(() => {
-    return selectedItems.reduce((sum, i) => sum + i.quantity, 0);
-  }, [selectedItems]);
+  const selectedTotal = useMemo(
+    () => selectedItems.reduce((sum, i) => sum + i.product.price * i.quantity, 0),
+    [selectedItems]
+  );
+
+  const selectedItemCount = useMemo(
+    () => selectedItems.reduce((sum, i) => sum + i.quantity, 0),
+    [selectedItems]
+  );
 
   const total = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
