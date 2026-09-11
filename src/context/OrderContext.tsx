@@ -144,16 +144,22 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const res = await fetch(`/api/orders/${orderId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, userId: user?.id }),
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to update order status');
+      }
       const updatedOrder = await res.json();
       const normalized = normalizeOrder(updatedOrder);
       setRawOrders(prev => prev.map(o => o.id === orderId ? normalized : o));
       setAllRawOrders(prev => prev.map(o => o.id === orderId ? normalized : o));
+      return normalized;
     } catch (err) {
       console.error('Failed to update order status:', err);
+      throw err;
     }
-  }, []);
+  }, [user]);
 
   const deleteOrder = useCallback(async (orderId: string) => {
     try {

@@ -168,7 +168,23 @@ app.post('/api/orders', async (req, res) => {
 app.put('/api/orders/:id/status', async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, userId } = req.body;
+
+    const orderResult = await query('SELECT * FROM orders WHERE id = $1', [id]);
+    if (orderResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found.' });
+    }
+    const order = orderResult.rows[0];
+
+    if (status === 'Cancelled') {
+      if (order.status !== 'Pending') {
+        return res.status(400).json({ error: 'Order can only be cancelled when its status is Pending.' });
+      }
+      if (userId && order.user_id && String(order.user_id) !== String(userId)) {
+        return res.status(403).json({ error: 'Forbidden: You can only cancel your own orders.' });
+      }
+    }
+
     const result = await query(
       `UPDATE orders SET status=$1 WHERE id = $2 RETURNING *`,
       [status, id]

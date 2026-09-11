@@ -4,9 +4,11 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Truck, Star, Wrench, MessageSquare, CheckCircle2, ThumbsUp, CalendarCheck } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Truck, Star, Wrench, MessageSquare, CheckCircle2, ThumbsUp, CalendarCheck, XCircle } from 'lucide-react';
 import { useOrders } from '@/context/OrderContext';
 import { Order } from '@/types';
+import { toast } from '@/hooks/use-toast';
 
 const statusColor = (status: string) => {
   switch (status) {
@@ -143,7 +145,7 @@ const OrderFeedbackForm = ({ order, submitFeedback }: { order: Order; submitFeed
           onClick={handleSubmit}
           disabled={rating === 0 || isSubmitting}
           size="sm"
-          className="gap-1.5"
+          className="gap-1.5 w-full sm:w-auto h-10 text-sm"
         >
           {isSubmitting ? (
             <>
@@ -163,7 +165,20 @@ const OrderFeedbackForm = ({ order, submitFeedback }: { order: Order; submitFeed
 };
 
 const Orders = () => {
-  const { orders, submitFeedback } = useOrders();
+  const { orders, updateOrderStatus, submitFeedback } = useOrders();
+
+  const handleCancelOrder = async (orderId: string) => {
+    try {
+      await updateOrderStatus(orderId, 'Cancelled');
+      toast({ title: 'Order Cancelled', description: 'Your order has been successfully cancelled.' });
+    } catch (err: any) {
+      toast({
+        title: 'Could not cancel order',
+        description: err.message || 'Failed to cancel order.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -177,7 +192,7 @@ const Orders = () => {
         {orders.map(order => (
           <Card
             key={order.id}
-            className={`p-6 transition-shadow ${
+            className={`p-4 sm:p-6 transition-shadow ${
               order.status !== 'Cancelled' && !order.rating
                 ? 'ring-2 ring-primary/20 shadow-sm'
                 : ''
@@ -185,36 +200,36 @@ const Orders = () => {
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="font-semibold">{order.id}</p>
-                <p className="text-sm text-muted-foreground">Ordered: {order.date}</p>
+                <p className="font-semibold text-sm sm:text-base">{order.id}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">Ordered: {order.date}</p>
               </div>
               <Badge className={statusColor(order.status)}>{order.status}</Badge>
             </div>
 
             {/* Expected Delivery */}
-            <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-              <Truck className="h-4 w-4" />
+            <div className="mt-3 flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+              <Truck className="h-4 w-4 shrink-0" />
               <span>Expected delivery: <span className="font-medium text-foreground">{new Date(order.expectedDeliveryDate).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}</span></span>
             </div>
 
-            <div className="mt-4 space-y-2">
+            <div className="mt-4 space-y-3">
               {order.items.map(({ product, quantity, selectedSize, selectedColor }, idx) => (
                 <div key={idx} className="flex items-center gap-3">
-                  <img src={product.image} alt={product.name} className="h-12 w-12 rounded object-cover" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{product.name}</p>
+                  <img src={product.image} alt={product.name} className="h-12 w-12 rounded object-cover flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{product.name}</p>
                     <p className="text-xs text-muted-foreground">
                       Qty: {quantity}
                       {selectedSize && ` · Size: ${selectedSize}`}
                       {selectedColor && ` · Color: ${selectedColor}`}
                     </p>
                   </div>
-                  <p className="text-sm font-medium">₱{(product.price * quantity).toLocaleString()}</p>
+                  <p className="text-sm font-medium shrink-0">₱{(product.price * quantity).toLocaleString()}</p>
                 </div>
               ))}
             </div>
-            <div className="mt-4 flex flex-wrap items-center justify-between border-t pt-3 gap-2">
-              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between border-t pt-3 gap-3">
+              <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-muted-foreground">
                 <span>Payment: {order.paymentMethod}</span>
 
                 {order.installationSelected ? (
@@ -228,14 +243,46 @@ const Orders = () => {
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center justify-between sm:justify-end gap-3 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0">
+                {order.status === 'Pending' && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        id={`cancel-order-${order.id}`}
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 text-xs h-9 border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive shrink-0"
+                      >
+                        <XCircle className="h-3.5 w-3.5" />
+                        Cancel Order
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Cancel Order</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to cancel this order?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>No, keep order</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleCancelOrder(order.id)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Yes, cancel order
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
                 <Link to={`/messages?orderId=${order.id}`}>
-                  <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+                  <Button variant="outline" size="sm" className="gap-1.5 text-xs h-9">
                     <MessageSquare className="h-3.5 w-3.5 text-primary" />
                     Chat about Order
                   </Button>
                 </Link>
-                <span className="font-bold">Total: ₱{order.total.toLocaleString()}</span>
+                <span className="font-bold text-base sm:text-sm">Total: ₱{order.total.toLocaleString()}</span>
               </div>
             </div>
 
