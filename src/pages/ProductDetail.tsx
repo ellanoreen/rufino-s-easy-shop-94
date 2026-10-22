@@ -103,6 +103,7 @@ const ProductDetail = () => {
                     size="sm"
                     onClick={() => setSelectedSize(size)}
                     disabled={isSoldOut}
+                    className="h-9 px-3.5"
                   >
                     {size}
                   </Button>
@@ -123,6 +124,7 @@ const ProductDetail = () => {
                     size="sm"
                     onClick={() => setSelectedColor(color)}
                     disabled={isSoldOut}
+                    className="h-9 px-3.5"
                   >
                     {color}
                   </Button>
@@ -131,7 +133,7 @@ const ProductDetail = () => {
             </div>
           )}
 
-          <Button size="lg" className="mt-8 w-full sm:w-auto" onClick={handleAddToCart} disabled={isSoldOut}>
+          <Button size="lg" className="mt-8 w-full sm:w-auto h-12 text-base px-8 font-medium" onClick={handleAddToCart} disabled={isSoldOut}>
             <ShoppingCart className="mr-2 h-5 w-5" />
             {isSoldOut ? 'Sold Out' : 'Add to Cart'}
           </Button>
@@ -139,9 +141,9 @@ const ProductDetail = () => {
       </div>
 
       {related.length > 0 && (
-        <div className="mt-16">
+        <div className="mt-12 sm:mt-16">
           <h2 className="mb-6 font-display text-2xl font-bold">You May Also Like</h2>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {related.map(p => <ProductCard key={p.id} product={p} />)}
           </div>
         </div>

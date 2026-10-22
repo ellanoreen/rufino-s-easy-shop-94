@@ -38,12 +38,12 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     <div className="flex min-h-screen bg-muted/30">
       {/* Desktop Sidebar */}
       <aside className="hidden w-64 flex-col border-r bg-card lg:flex">
-        <div className="flex h-16 items-center border-b px-6">
+        <div className="flex h-20 items-center border-b px-6">
           <Link to="/admin" className="flex items-center">
             <img
               src="/logo.png"
               alt="Rufino's Furniture"
-              className="h-10 w-auto object-contain"
+              className="h-16 w-auto object-contain"
             />
           </Link>
         </div>
@@ -79,7 +79,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       {/* Main Content Area */}
       <div className="flex flex-1 flex-col">
         {/* Desktop Header */}
-        <header className="hidden lg:flex h-16 items-center justify-between border-b bg-card px-8">
+        <header className="hidden lg:flex h-20 items-center justify-between border-b bg-card px-8">
           <div className="text-sm font-medium text-muted-foreground">
             Rufino's Furniture <span className="text-foreground font-semibold">Admin Workspace</span>
           </div>
@@ -91,12 +91,12 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </header>
 
         {/* Mobile Header */}
-        <header className="flex h-14 items-center justify-between border-b bg-card px-4 lg:hidden">
+        <header className="flex h-16 items-center justify-between border-b bg-card px-4 lg:hidden">
           <Link to="/admin" className="flex items-center">
             <img
               src="/logo.png"
               alt="Rufino's Furniture"
-              className="h-9 w-auto object-contain"
+              className="h-12 sm:h-14 w-auto object-contain"
             />
           </Link>
           <Button variant="ghost" size="icon" onClick={() => setMobileOpen(!mobileOpen)}>
@@ -108,8 +108,8 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           <div className="border-b bg-card p-4 lg:hidden space-y-1">
             {navItems.map(item => (
               <Link key={item.to} to={item.to} onClick={() => setMobileOpen(false)}>
-                <Button variant={isActive(item.to) ? 'secondary' : 'ghost'} className="w-full justify-start gap-3">
-                  <item.icon className="h-4 w-4" />{item.label}
+                <Button variant={isActive(item.to) ? 'secondary' : 'ghost'} className="w-full justify-start gap-3 h-11 text-base">
+                  <item.icon className="h-5 w-5" />{item.label}
                   {item.label === 'Orders' && pendingCount > 0 && (
                     <Badge className="ml-auto bg-accent text-accent-foreground text-xs">{pendingCount}</Badge>
                   )}
@@ -119,8 +119,8 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 </Button>
               </Link>
             ))}
-            <Button variant="ghost" className="w-full justify-start gap-3 text-destructive" onClick={handleLogout}>
-              <LogOut className="h-4 w-4" />Logout
+            <Button variant="ghost" className="w-full justify-start gap-3 text-destructive h-11 text-base" onClick={handleLogout}>
+              <LogOut className="h-5 w-5" />Logout
             </Button>
           </div>
         )}

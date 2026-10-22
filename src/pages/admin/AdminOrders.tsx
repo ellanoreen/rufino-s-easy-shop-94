@@ -17,7 +17,7 @@ const statusColor = (status: string) => {
   switch (status) {
     case 'Delivered': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
     case 'Out for Delivery': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-    case 'Confirmed': return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200';
+    case 'Confirm': return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200';
     case 'Pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
     case 'Cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
     default: return 'bg-secondary text-secondary-foreground';
@@ -47,25 +47,25 @@ const AdminOrders = () => {
   };
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <div>
-        <h1 className="font-display text-3xl font-bold">Orders</h1>
-        <p className="mt-1 text-muted-foreground">
+        <h1 className="font-display text-2xl sm:text-3xl font-bold">Orders</h1>
+        <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
           {orders.length} orders total · {orders.filter(o => o.status === 'Pending').length} pending · {orders.filter(o => o.status === 'Cancelled').length} cancelled
         </p>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative flex-1 w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search by customer or order ID..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="Search by customer or order ID..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-10 text-base sm:text-sm" />
         </div>
         <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-[160px] h-10 text-base sm:text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="Pending">Pending</SelectItem>
-            <SelectItem value="Confirmed">Confirmed</SelectItem>
+            <SelectItem value="Confirm">Confirm</SelectItem>
             <SelectItem value="Out for Delivery">Out for Delivery</SelectItem>
             <SelectItem value="Delivered">Delivered</SelectItem>
             <SelectItem value="Cancelled">Cancelled</SelectItem>
@@ -73,7 +73,69 @@ const AdminOrders = () => {
         </Select>
       </div>
 
-      <Card>
+      {/* ── Mobile Order Cards (< 768px) ────────────────────────────────── */}
+      <div className="space-y-3 md:hidden">
+        {filtered.map(o => (
+          <Card key={o.id} className={`p-4 ${o.status === 'Pending' ? 'border-accent/40 bg-accent/5' : o.status === 'Cancelled' ? 'border-destructive/30 bg-destructive/5' : ''}`}>
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <span className="font-bold text-sm">{o.id}</span>
+                <p className="font-medium text-sm text-foreground mt-0.5">{o.customerName}</p>
+                <p className="text-xs text-muted-foreground">{o.contact}</p>
+              </div>
+              <Select value={o.status} onValueChange={v => handleStatusUpdate(o.id, v as Order['status'])}>
+                <SelectTrigger className="w-[130px] h-8 text-xs">
+                  <Badge className={statusColor(o.status)}>{o.status}</Badge>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Confirm">Confirm</SelectItem>
+                  <SelectItem value="Out for Delivery">Out for Delivery</SelectItem>
+                  <SelectItem value="Delivered">Delivered</SelectItem>
+                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="mt-3 pt-2 border-t flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+              <div>
+                <span>{o.items.reduce((s, i) => s + i.quantity, 0)} items</span>
+                <span className="ml-2 font-bold text-foreground text-sm">₱{o.total.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center gap-1.5 ml-auto">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewingOrder(o)} title="View Order Details">
+                  <Eye className="h-4 w-4" />
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Order {o.id}?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete this order? Transaction history will be preserved in reports.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDeleteOrder(o.id)} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </div>
+          </Card>
+        ))}
+        {filtered.length === 0 && (
+          <p className="text-center text-muted-foreground py-8 text-sm">No orders found.</p>
+        )}
+      </div>
+
+      {/* ── Desktop Orders Table (>= 768px) ────────────────────────────── */}
+      <Card className="hidden md:block">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -133,7 +195,7 @@ const AdminOrders = () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="Pending">Pending</SelectItem>
-                          <SelectItem value="Confirmed">Confirmed</SelectItem>
+                          <SelectItem value="Confirm">Confirm</SelectItem>
                           <SelectItem value="Out for Delivery">Out for Delivery</SelectItem>
                           <SelectItem value="Delivered">Delivered</SelectItem>
                           <SelectItem value="Cancelled">Cancelled</SelectItem>

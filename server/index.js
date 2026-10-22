@@ -185,11 +185,43 @@ app.put('/api/orders/:id/status', async (req, res) => {
       }
     }
 
+    // Prevent no-op updates
+    if (order.status === status) {
+      return res.json(order);
+    }
+
     const result = await query(
       `UPDATE orders SET status=$1 WHERE id = $2 RETURNING *`,
       [status, id]
     );
-    res.json(result.rows[0]);
+    const updatedOrder = result.rows[0];
+
+    // Create a notification for the order owner (if the order has a user_id)
+    if (updatedOrder.user_id) {
+      const statusMessages = {
+        'Confirm':          'Your order has been confirmed by the store.',
+        'Out for Delivery': 'Great news! Your order is now out for delivery.',
+        'Delivered':        'Your order has been delivered. Enjoy your furniture!',
+        'Cancelled':        'Your order has been cancelled.',
+        'Pending':          'Your order status has been updated to Pending.',
+      };
+      const message = statusMessages[status] || `Your order status has been updated to ${status}.`;
+
+      // Avoid duplicate notification for the same order + status
+      const existing = await query(
+        `SELECT id FROM notifications WHERE order_id = $1 AND status = $2 AND user_id = $3`,
+        [String(id), status, String(updatedOrder.user_id)]
+      );
+      if (existing.rows.length === 0) {
+        await query(
+          `INSERT INTO notifications (user_id, order_id, message, status)
+           VALUES ($1, $2, $3, $4)`,
+          [String(updatedOrder.user_id), String(id), message, status]
+        );
+      }
+    }
+
+    res.json(updatedOrder);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -261,6 +293,67 @@ app.put('/api/orders/:id/feedback', async (req, res) => {
   }
 });
 
+
+// --- Notifications Routes ---
+app.get('/api/notifications', async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) return res.status(400).json({ error: 'userId is required.' });
+    const result = await query(
+      `SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC`,
+      [String(userId)]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.patch('/api/notifications/:id/read', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId is required.' });
+    const result = await query(
+      `UPDATE notifications SET is_read = true WHERE id = $1 AND user_id = $2 RETURNING *`,
+      [id, String(userId)]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Notification not found.' });
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.patch('/api/notifications/read-all', async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId is required.' });
+    await query(
+      `UPDATE notifications SET is_read = true WHERE user_id = $1`,
+      [String(userId)]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.patch('/api/notifications/:id/unread', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId is required.' });
+    const result = await query(
+      `UPDATE notifications SET is_read = false WHERE id = $1 AND user_id = $2 RETURNING *`,
+      [id, String(userId)]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Notification not found.' });
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // --- Settings Routes ---
 app.get('/api/settings', async (req, res) => {

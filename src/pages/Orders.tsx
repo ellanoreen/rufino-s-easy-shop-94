@@ -14,7 +14,7 @@ const statusColor = (status: string) => {
   switch (status) {
     case 'Delivered': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
     case 'Out for Delivery': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-    case 'Confirmed': return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200';
+    case 'Confirm': return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200';
     case 'Pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
     case 'Cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
     default: return 'bg-secondary text-secondary-foreground';
@@ -51,11 +51,10 @@ const OrderFeedbackForm = ({ order, submitFeedback }: { order: Order; submitFeed
             {[1, 2, 3, 4, 5].map(star => (
               <Star
                 key={star}
-                className={`h-5 w-5 transition-colors ${
-                  star <= order.rating!
-                    ? 'fill-yellow-400 text-yellow-400'
-                    : 'fill-slate-200 text-slate-200 dark:fill-slate-700 dark:text-slate-700'
-                }`}
+                className={`h-5 w-5 transition-colors ${star <= order.rating!
+                  ? 'fill-yellow-400 text-yellow-400'
+                  : 'fill-slate-200 text-slate-200 dark:fill-slate-700 dark:text-slate-700'
+                  }`}
               />
             ))}
             <span className="ml-1 text-xs font-medium text-muted-foreground">
@@ -104,11 +103,10 @@ const OrderFeedbackForm = ({ order, submitFeedback }: { order: Order; submitFeed
                 onClick={() => setRating(star)}
               >
                 <Star
-                  className={`h-7 w-7 transition-all duration-100 ${
-                    activeRating >= star
-                      ? 'fill-yellow-400 text-yellow-400 drop-shadow-sm'
-                      : 'fill-slate-200 text-slate-300 dark:fill-slate-700 dark:text-slate-600'
-                  }`}
+                  className={`h-7 w-7 transition-all duration-100 ${activeRating >= star
+                    ? 'fill-yellow-400 text-yellow-400 drop-shadow-sm'
+                    : 'fill-slate-200 text-slate-300 dark:fill-slate-700 dark:text-slate-600'
+                    }`}
                 />
               </button>
             ))}
@@ -192,11 +190,10 @@ const Orders = () => {
         {orders.map(order => (
           <Card
             key={order.id}
-            className={`p-4 sm:p-6 transition-shadow ${
-              order.status !== 'Cancelled' && !order.rating
-                ? 'ring-2 ring-primary/20 shadow-sm'
-                : ''
-            }`}
+            className={`p-4 sm:p-6 transition-shadow ${order.status !== 'Cancelled' && !order.rating
+              ? 'ring-2 ring-primary/20 shadow-sm'
+              : ''
+              }`}
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>

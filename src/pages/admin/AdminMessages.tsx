@@ -217,20 +217,22 @@ export default function AdminMessages() {
     }
   };
 
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
+
   return (
     <div className="p-4 md:p-8 space-y-6 bg-slate-50/50 min-h-screen">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl md:text-4xl font-serif text-slate-800 tracking-tight">Customer Messages & Chat</h1>
-        <p className="text-slate-500 mt-1 text-sm md:text-base">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-serif text-slate-800 tracking-tight">Customer Messages & Chat</h1>
+        <p className="text-slate-500 mt-1 text-xs sm:text-sm md:text-base">
           Respond to customer questions, customized furniture requests, and order inquiries in real-time
         </p>
       </div>
 
       {/* Main Dual-Panel Chat Workspace */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden grid grid-cols-1 lg:grid-cols-12 h-[750px]">
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden grid grid-cols-1 lg:grid-cols-12 h-[calc(100vh-12rem)] min-h-[480px] max-h-[750px]">
         {/* Left Sidebar: Conversations List (5 cols) */}
-        <div className="lg:col-span-4 border-r border-slate-200/80 flex flex-col h-full bg-slate-50/30">
+        <div className={`lg:col-span-4 border-r border-slate-200/80 flex flex-col h-full bg-slate-50/30 ${mobileView === 'chat' ? 'hidden lg:flex' : 'flex'}`}>
           {/* Search and Filters */}
           <div className="p-4 border-b space-y-3 bg-white">
             <div className="relative">
@@ -290,12 +292,14 @@ export default function AdminMessages() {
                     onClick={() => {
                       setSelectedCustomerId(conv.customerId);
                       setSearchParams({ customerId: conv.customerId });
+                      setMobileView('chat');
                     }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
                         setSelectedCustomerId(conv.customerId);
                         setSearchParams({ customerId: conv.customerId });
+                        setMobileView('chat');
                       }
                     }}
                     className={`w-full text-left p-4 transition-all flex items-start gap-3 relative cursor-pointer select-none ${
@@ -390,13 +394,21 @@ export default function AdminMessages() {
         </div>
 
         {/* Right Area: Active Conversation (8 cols) */}
-        <div className="lg:col-span-8 flex flex-col h-full bg-white">
+        <div className={`lg:col-span-8 flex flex-col h-full bg-white ${mobileView === 'list' ? 'hidden lg:flex' : 'flex'}`}>
           {selectedCustomerId && activeConversation ? (
             <>
               {/* Chat Thread Header */}
               <div className="p-4 border-b flex items-center justify-between flex-wrap gap-3 bg-white">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-semibold text-sm">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="lg:hidden h-8 px-2 text-xs text-slate-600 hover:text-slate-900 mr-1"
+                    onClick={() => setMobileView('list')}
+                  >
+                    ← All Messages
+                  </Button>
+                  <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-semibold text-sm shrink-0">
                     {activeConversation.customerName.charAt(0).toUpperCase()}
                   </div>
                   <div>

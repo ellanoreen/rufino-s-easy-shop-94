@@ -9,6 +9,7 @@ import { OrderProvider } from "@/context/OrderContext";
 import { ProductProvider } from "@/context/ProductContext";
 import { SettingsProvider } from "@/context/SettingsContext";
 import { ChatProvider } from "@/context/ChatContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 import Layout from "@/components/Layout";
 import AdminLayout from "@/components/AdminLayout";
 import RoleGuard from "@/components/RoleGuard";
@@ -39,6 +40,7 @@ const App = () => (
           <OrderProvider>
             <CartProvider>
               <ChatProvider>
+                <NotificationProvider>
                 <Toaster />
                 <Sonner />
                 <BrowserRouter>
@@ -63,6 +65,7 @@ const App = () => (
                     <Route path="*" element={<Layout><NotFound /></Layout>} />
                   </Routes>
                 </BrowserRouter>
+                </NotificationProvider>
               </ChatProvider>
             </CartProvider>
           </OrderProvider>

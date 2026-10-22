@@ -127,7 +127,7 @@ export default function Messages() {
       </div>
 
       {/* Main Chat Container */}
-      <div className="bg-card rounded-2xl border shadow-sm flex flex-col h-[650px] overflow-hidden">
+      <div className="bg-card rounded-2xl border shadow-sm flex flex-col h-[calc(100vh-13rem)] min-h-[450px] max-h-[700px] overflow-hidden">
         {/* Chat Header Info Bar */}
         <div className="p-4 border-b bg-muted/20 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">

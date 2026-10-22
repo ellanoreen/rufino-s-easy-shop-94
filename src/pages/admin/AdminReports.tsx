@@ -345,21 +345,21 @@ export default function AdminReports() {
       {/* Header - Hidden on Print */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
         <div>
-          <h1 className="text-3xl md:text-4xl font-serif text-slate-800 tracking-tight">Analytics & Reports</h1>
-          <p className="text-slate-500 mt-2 text-sm md:text-base">Comprehensive business insights and historical records</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-serif text-slate-800 tracking-tight">Analytics & Reports</h1>
+          <p className="text-slate-500 mt-1 sm:mt-2 text-xs sm:text-sm md:text-base">Comprehensive business insights and historical records</p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <button
             onClick={handleDownloadReport}
-            className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-lg shadow-sm hover:shadow-md hover:bg-emerald-700 transition-all font-medium text-sm"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-lg shadow-sm hover:shadow-md hover:bg-emerald-700 transition-all font-medium text-xs sm:text-sm"
           >
             <Download className="w-4 h-4" />
             <span>Download Report</span>
           </button>
           <button
             onClick={handlePrint}
-            className="flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-lg shadow-sm hover:shadow-md hover:bg-slate-800 transition-all font-medium text-sm border border-slate-700/50"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-lg shadow-sm hover:shadow-md hover:bg-slate-800 transition-all font-medium text-xs sm:text-sm border border-slate-700/50"
           >
             <Printer className="w-4 h-4" />
             <span>Print / PDF</span>
@@ -368,19 +368,19 @@ export default function AdminReports() {
       </div>
 
       {/* Tabs - Hidden on Print */}
-      <div className="print:hidden">
-        <div className="inline-flex gap-2 p-1.5 bg-white/80 backdrop-blur-sm w-fit rounded-xl border border-slate-200/60 shadow-sm">
+      <div className="print:hidden overflow-x-auto pb-1 max-w-full scrollbar-none">
+        <div className="inline-flex gap-1.5 p-1.5 bg-white/80 backdrop-blur-sm w-full sm:w-fit rounded-xl border border-slate-200/60 shadow-sm">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setReportType(tab.id)}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all duration-300 ${
                 reportType === tab.id
                   ? 'bg-slate-900 text-white shadow-md'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/50'
               }`}
             >
-              <tab.icon className={`h-4.5 w-4.5 ${reportType === tab.id ? 'text-white' : 'text-slate-400'}`} />
+              <tab.icon className={`h-4 w-4 ${reportType === tab.id ? 'text-white' : 'text-slate-400'}`} />
               {tab.label}
             </button>
           ))}
@@ -388,11 +388,11 @@ export default function AdminReports() {
       </div>
 
       {/* Filters - Hidden on Print */}
-      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5 md:p-6 print:hidden relative overflow-hidden group">
+      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-4 sm:p-6 print:hidden relative overflow-hidden group">
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-        <div className="flex flex-col md:flex-row md:items-center gap-6">
+        <div className="flex flex-col md:flex-row md:items-center gap-4 sm:gap-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+            <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
               <Calendar className="w-5 h-5" />
             </div>
             <div>
@@ -401,12 +401,12 @@ export default function AdminReports() {
             </div>
           </div>
           <div className="h-px w-full md:w-px md:h-12 bg-slate-200"></div>
-          <div className="flex flex-wrap items-center gap-4 flex-1">
-            <div className="relative">
+          <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 flex-1">
+            <div className="relative w-full sm:w-auto">
               <select
                 value={timeframe}
                 onChange={(e) => setTimeframe(e.target.value as Timeframe)}
-                className="appearance-none bg-slate-50 border border-slate-200 text-slate-700 py-2.5 pl-4 pr-10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium cursor-pointer"
+                className="w-full appearance-none bg-slate-50 border border-slate-200 text-slate-700 py-2.5 pl-4 pr-10 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium cursor-pointer"
               >
                 <option value="all">All Time</option>
                 <option value="daily">Daily / Today</option>
@@ -426,20 +426,20 @@ export default function AdminReports() {
                   type="month"
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 text-slate-700 py-2 px-3 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
+                  className="w-full sm:w-auto bg-slate-50 border border-slate-200 text-slate-700 py-2 px-3 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium"
                 />
               </div>
             )}
 
             {timeframe === 'custom' && (
-              <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-4 duration-300">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 animate-in fade-in slide-in-from-left-4 duration-300">
                 <input
                   type="date"
                   value={customRange.start}
                   onChange={(e) => setCustomRange({ ...customRange, start: e.target.value })}
                   className="bg-slate-50 border border-slate-200 text-slate-700 py-2 px-3 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
-                <span className="text-slate-400 text-sm">to</span>
+                <span className="text-slate-400 text-sm text-center">to</span>
                 <input
                   type="date"
                   value={customRange.end}

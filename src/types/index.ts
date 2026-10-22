@@ -77,3 +77,13 @@ export interface ConversationSummary {
 }
 
 export type Category = 'All' | 'Living Room' | 'Bedroom' | 'Dining' | 'Office' | 'Outdoor';
+
+export interface Notification {
+  id: string;
+  userId: string;
+  orderId: string;
+  message: string;
+  status: string;
+  isRead: boolean;
+  createdAt: string;
+}

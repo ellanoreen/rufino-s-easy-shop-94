@@ -3,8 +3,24 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import AdminReports from '@/pages/admin/AdminReports';
 import { OrderProvider } from '@/context/OrderContext';
+import { AuthProvider } from '@/context/AuthContext';
 import { ProductProvider } from '@/context/ProductContext';
 import { Order, Product } from '@/types';
+
+// Mock useAuth so OrderProvider sees an admin user (fetches all orders, no userId filter)
+vi.mock('@/context/AuthContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/context/AuthContext')>();
+  return {
+    ...actual,
+    useAuth: () => ({
+      user: { id: '1', name: 'Rufino Admin', email: 'admin@rufinos.com', role: 'admin' as const },
+      isAdmin: true,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+    }),
+  };
+});
 
 describe('AdminReports Timeframe & Month Display', () => {
   beforeEach(() => {
@@ -150,11 +166,13 @@ describe('AdminReports Timeframe & Month Display', () => {
     });
 
     return render(
-      <ProductProvider>
-        <OrderProvider>
-          <AdminReports />
-        </OrderProvider>
-      </ProductProvider>
+      <AuthProvider>
+        <ProductProvider>
+          <OrderProvider>
+            <AdminReports />
+          </OrderProvider>
+        </ProductProvider>
+      </AuthProvider>
     );
   };
 

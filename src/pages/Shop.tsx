@@ -28,13 +28,13 @@ const Shop = () => {
 
       {/* Filters */}
       <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative flex-1 w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search furniture..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
+          <Input placeholder="Search furniture..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10 h-10 text-base sm:text-sm" />
         </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 pt-0.5 max-w-full scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
           {categories.map(c => (
-            <Button key={c} variant={category === c ? 'default' : 'outline'} size="sm" onClick={() => setCategory(c)}>
+            <Button key={c} variant={category === c ? 'default' : 'outline'} size="sm" onClick={() => setCategory(c)} className="shrink-0 h-9 px-3.5 text-xs sm:text-sm font-medium">
               {c}
             </Button>
           ))}

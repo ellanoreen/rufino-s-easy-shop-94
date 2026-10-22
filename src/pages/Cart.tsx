@@ -75,74 +75,77 @@ const Cart = () => {
             return (
               <Card
                 key={key}
-                className={`flex items-center gap-3 sm:gap-4 p-4 transition-all ${
+                className={`p-3 sm:p-4 transition-all ${
                   isChecked ? 'border-primary/40 bg-card' : 'opacity-80 bg-card/40'
                 }`}
               >
-                {/* Product Checkbox */}
-                <div className="flex items-center justify-center pl-1">
-                  <Checkbox
-                    id={`select-${key}`}
-                    checked={isChecked}
-                    onCheckedChange={() => toggleSelectItem(key)}
-                    className="h-5 w-5"
+                <div className="flex items-start sm:items-center gap-3 sm:gap-4">
+                  {/* Product Checkbox */}
+                  <div className="flex items-center justify-center pt-1 sm:pt-0">
+                    <Checkbox
+                      id={`select-${key}`}
+                      checked={isChecked}
+                      onCheckedChange={() => toggleSelectItem(key)}
+                      className="h-5 w-5"
+                    />
+                  </div>
+
+                  {/* Product Image */}
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="h-16 w-16 sm:h-24 sm:w-24 rounded-md object-cover flex-shrink-0"
                   />
-                </div>
 
-                {/* Product Image */}
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="h-20 w-20 sm:h-24 sm:w-24 rounded-md object-cover flex-shrink-0"
-                />
-
-                {/* Product Details & Stepper */}
-                <div className="flex flex-1 flex-col justify-between min-w-0">
-                  <div>
-                    <h3 className="font-semibold text-sm sm:text-base truncate">{product.name}</h3>
-                    <p className="text-sm text-muted-foreground">₱{product.price.toLocaleString()}</p>
-                    {(selectedSize || selectedColor) && (
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {selectedSize && `Size: ${selectedSize}`}
-                        {selectedSize && selectedColor && ' · '}
-                        {selectedColor && `Color: ${selectedColor}`}
+                  {/* Product Details & Stepper */}
+                  <div className="flex flex-1 flex-col justify-between min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1">
+                      <div>
+                        <h3 className="font-semibold text-sm sm:text-base line-clamp-1 sm:line-clamp-none">{product.name}</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground">₱{product.price.toLocaleString()}</p>
+                        {(selectedSize || selectedColor) && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {selectedSize && `Size: ${selectedSize}`}
+                            {selectedSize && selectedColor && ' · '}
+                            {selectedColor && `Color: ${selectedColor}`}
+                          </p>
+                        )}
+                      </div>
+                      <p className="font-bold text-sm sm:text-base text-accent sm:text-foreground sm:text-right shrink-0 mt-0.5 sm:mt-0">
+                        ₱{(product.price * quantity).toLocaleString()}
                       </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 mt-3">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => updateQuantity(product.id, quantity - 1, selectedSize, selectedColor)}
-                    >
-                      <Minus className="h-3 w-3" />
-                    </Button>
-                    <span className="w-8 text-center text-sm font-medium">{quantity}</span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => updateQuantity(product.id, quantity + 1, selectedSize, selectedColor)}
-                    >
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="ml-auto h-8 w-8 text-destructive"
-                      onClick={() => removeFromCart(product.id, selectedSize, selectedColor)}
-                      title="Remove product"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-2 sm:mt-3">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => updateQuantity(product.id, quantity - 1, selectedSize, selectedColor)}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="w-6 text-center text-sm font-medium">{quantity}</span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => updateQuantity(product.id, quantity + 1, selectedSize, selectedColor)}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="ml-auto h-8 w-8 text-destructive"
+                        onClick={() => removeFromCart(product.id, selectedSize, selectedColor)}
+                        title="Remove product"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
-
-                {/* Subtotal */}
-                <p className="self-center font-bold text-sm sm:text-base text-right min-w-[70px]">
-                  ₱{(product.price * quantity).toLocaleString()}
-                </p>
               </Card>
             );
           })}

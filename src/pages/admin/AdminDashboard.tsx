@@ -121,22 +121,22 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="p-6 lg:p-8 space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
       <div>
-        <h1 className="font-display text-3xl font-bold">Dashboard</h1>
-        <p className="mt-1 text-muted-foreground">Welcome back! Here's your store overview.</p>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold">Dashboard</h1>
+        <p className="mt-1 text-xs sm:text-sm text-muted-foreground">Welcome back! Here's your store overview.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map(s => (
           <Card key={s.label}>
-            <CardContent className="flex items-center gap-4 p-6">
-              <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${s.color}`}>
+            <CardContent className="flex items-center gap-4 p-4 sm:p-6">
+              <div className={`flex h-12 w-12 items-center justify-center rounded-xl shrink-0 ${s.color}`}>
                 <s.icon className="h-6 w-6" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{s.label}</p>
-                <p className="text-2xl font-bold">{s.value}</p>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">{s.label}</p>
+                <p className="text-xl sm:text-2xl font-bold truncate">{s.value}</p>
               </div>
             </CardContent>
           </Card>

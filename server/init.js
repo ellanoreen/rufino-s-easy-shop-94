@@ -163,6 +163,24 @@ export const initializeDB = async () => {
       }
     }
 
+    // Create notifications table for customer order-status notifications
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id TEXT NOT NULL,
+        order_id TEXT NOT NULL,
+        message TEXT NOT NULL,
+        status TEXT NOT NULL,
+        is_read BOOLEAN NOT NULL DEFAULT false,
+        created_at TEXT NOT NULL DEFAULT to_char(CURRENT_TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS')
+      );
+    `);
+
+    // Index for fast per-user notification lookups
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+    `);
+
     console.log('Database initialized successfully.');
   } catch (error) {
     console.error('Failed to initialize database:', error);

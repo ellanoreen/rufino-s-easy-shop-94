@@ -3,7 +3,23 @@ import { renderHook, act } from '@testing-library/react';
 import React from 'react';
 import { ProductProvider, useProducts } from '@/context/ProductContext';
 import { OrderProvider, useOrders } from '@/context/OrderContext';
+import { AuthProvider } from '@/context/AuthContext';
 import { Product, Order } from '@/types';
+
+// Mock useAuth so OrderProvider sees an admin user (fetches all orders, no userId filter)
+vi.mock('@/context/AuthContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/context/AuthContext')>();
+  return {
+    ...actual,
+    useAuth: () => ({
+      user: { id: '1', name: 'Rufino Admin', email: 'admin@rufinos.com', role: 'admin' as const },
+      isAdmin: true,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+    }),
+  };
+});
 
 describe('Soft Delete & Historical Reports Integration', () => {
   beforeEach(() => {
@@ -148,8 +164,13 @@ describe('Soft Delete & Historical Reports Integration', () => {
       },
     ];
 
+    localStorage.setItem(
+      'currentUser',
+      JSON.stringify({ id: '1', name: 'Rufino Admin', email: 'admin@rufinos.com', role: 'admin' })
+    );
+
     global.fetch = vi.fn().mockImplementation((url: string, options?: any) => {
-      if (url === '/api/orders' && (!options || options.method === 'GET')) {
+      if (url.startsWith('/api/orders') && (!options || options.method === 'GET')) {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve(initialOrders),
@@ -161,11 +182,13 @@ describe('Soft Delete & Historical Reports Integration', () => {
           json: () => Promise.resolve({ message: 'Order archived successfully' }),
         });
       }
-      return Promise.reject(new Error('Unknown url'));
+      return Promise.reject(new Error(`Unknown url: ${url}`));
     });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <OrderProvider>{children}</OrderProvider>
+      <AuthProvider>
+        <OrderProvider>{children}</OrderProvider>
+      </AuthProvider>
     );
 
     const { result } = renderHook(() => useOrders(), { wrapper });

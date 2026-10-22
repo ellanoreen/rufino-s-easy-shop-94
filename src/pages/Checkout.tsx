@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Truck, Wrench } from 'lucide-react';
+import { CheckCircle, Truck, Wrench, Banknote, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,7 +17,7 @@ const Checkout = () => {
   const { placeOrder } = useOrders();
   const navigate = useNavigate();
   const [submitted, setSubmitted] = useState(false);
-  const [form, setForm] = useState({ name: '', address: '', contact: '', payment: '' });
+  const [form, setForm] = useState({ name: '', address: '', contact: '', payment: 'cod' });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Use selected items from cart (fallback to all items if none specifically selected)
@@ -70,7 +70,21 @@ const Checkout = () => {
     return Object.keys(e).length === 0;
   };
 
-  const paymentLabels: Record<string, string> = { cod: 'Cash on Delivery' };
+  const AVAILABLE_PAYMENT_METHODS = [
+    {
+      id: 'cod',
+      name: 'Cash on Delivery',
+      badge: 'COD',
+      description: 'Pay with cash upon delivery of your furniture',
+    },
+  ];
+
+  const isCodOnly = AVAILABLE_PAYMENT_METHODS.length === 1 && AVAILABLE_PAYMENT_METHODS[0].id === 'cod';
+
+  const paymentLabels: Record<string, string> = {
+    cod: 'Cash on Delivery',
+    'Cash on Delivery': 'Cash on Delivery',
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +95,7 @@ const Checkout = () => {
       form.name.trim(),
       form.address.trim(),
       form.contact.trim(),
-      paymentLabels[form.payment] || form.payment,
+      paymentLabels[form.payment] || form.payment || 'Cash on Delivery',
       wantsInstallation === 'yes',
       effectiveInstallationFee
     );
@@ -111,17 +125,17 @@ const Checkout = () => {
       <div className="mt-8 grid gap-8 lg:grid-cols-3">
         <form onSubmit={handleSubmit} className="space-y-5 lg:col-span-2">
           {/* Delivery Information */}
-          <Card className="p-6 space-y-4">
+          <Card className="p-4 sm:p-6 space-y-4">
             <h2 className="font-display text-xl font-semibold">Delivery Information</h2>
             <div>
               <Label htmlFor="name">Full Name</Label>
-              <Input id="name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+              <Input id="name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="h-10 text-base sm:text-sm" />
               {errors.name && <p className="mt-1 text-sm text-destructive">{errors.name}</p>}
             </div>
             <div>
               <Label htmlFor="address">Delivery Address</Label>
               <Select value={form.address} onValueChange={v => setForm(f => ({ ...f, address: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select delivery address" /></SelectTrigger>
+                <SelectTrigger className="h-10 text-base sm:text-sm"><SelectValue placeholder="Select delivery address" /></SelectTrigger>
                 <SelectContent>
                   {ALLOWED_AREAS.map(area => (
                     <SelectItem key={area} value={area}>{area}</SelectItem>
@@ -138,6 +152,7 @@ const Checkout = () => {
                 maxLength={11}
                 inputMode="numeric"
                 placeholder="e.g. 09XXXXXXXXX"
+                className="h-10 text-base sm:text-sm"
                 onChange={e => {
                   const digits = e.target.value.replace(/\D/g, '');
                   setForm(f => ({ ...f, contact: digits }));
@@ -146,19 +161,71 @@ const Checkout = () => {
               {errors.contact && <p className="mt-1 text-sm text-destructive">{errors.contact}</p>}
             </div>
             <div>
-              <Label>Payment Method</Label>
-              <Select value={form.payment} onValueChange={v => setForm(f => ({ ...f, payment: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select payment method" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cod">Cash on Delivery</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">Payment Method</Label>
+                <span className="text-xs text-muted-foreground font-normal">Preselected</span>
+              </div>
+
+              {isCodOnly ? (
+                /* Display Cash on Delivery directly as a visible, preselected button without dropdown */
+                <button
+                  type="button"
+                  id="payment-method-cod"
+                  aria-label="Cash on Delivery (COD)"
+                  role="radio"
+                  aria-checked={form.payment === 'cod'}
+                  onClick={() => {
+                    setForm(f => ({ ...f, payment: 'cod' }));
+                    if (errors.payment) {
+                      setErrors(e => ({ ...e, payment: '' }));
+                    }
+                  }}
+                  className={`w-full text-left p-3.5 sm:p-4 rounded-lg border-2 transition-all flex items-center justify-between gap-3 cursor-pointer ${
+                    form.payment === 'cod'
+                      ? 'border-accent bg-accent/10 shadow-xs ring-1 ring-accent/30'
+                      : 'border-border bg-background hover:bg-muted/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/20 text-accent">
+                      <Banknote className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-foreground text-sm sm:text-base">
+                          Cash on Delivery
+                        </span>
+                        <Badge variant="outline" className="border-accent/40 bg-accent/15 text-accent text-[11px] px-1.5 py-0 h-5 font-medium">
+                          COD
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Pay with cash upon delivery of your furniture
+                      </p>
+                    </div>
+                  </div>
+                  <div className="shrink-0">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-xs">
+                      <CheckCircle2 className="h-4 w-4" />
+                    </div>
+                  </div>
+                </button>
+              ) : (
+                <Select value={form.payment} onValueChange={v => setForm(f => ({ ...f, payment: v }))}>
+                  <SelectTrigger className="h-10 text-base sm:text-sm"><SelectValue placeholder="Select payment method" /></SelectTrigger>
+                  <SelectContent>
+                    {AVAILABLE_PAYMENT_METHODS.map(method => (
+                      <SelectItem key={method.id} value={method.id}>{method.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               {errors.payment && <p className="mt-1 text-sm text-destructive">{errors.payment}</p>}
             </div>
           </Card>
 
           {/* Installation Service Option */}
-          <Card className="p-6 space-y-4 border-2 border-accent/20 bg-accent/5">
+          <Card className="p-4 sm:p-6 space-y-4 border-2 border-accent/20 bg-accent/5">
             <div className="flex items-center gap-2">
               <Wrench className="h-5 w-5 text-accent" />
               <h2 className="font-display text-xl font-semibold">Installation Service</h2>
@@ -169,26 +236,26 @@ const Checkout = () => {
             </p>
 
             {/* Yes / No radio buttons */}
-            <div className="flex gap-6">
-              <label className="flex cursor-pointer items-center gap-2 rounded-lg border p-3 transition-colors hover:bg-muted/50 has-[:checked]:border-accent has-[:checked]:bg-accent/10">
+            <div className="flex gap-4 sm:gap-6">
+              <label className="flex flex-1 sm:flex-initial justify-center cursor-pointer items-center gap-2 rounded-lg border p-3 transition-colors hover:bg-muted/50 has-[:checked]:border-accent has-[:checked]:bg-accent/10">
                 <input
                   type="radio"
                   name="wantsInstallation"
                   value="no"
                   checked={wantsInstallation === 'no'}
                   onChange={() => setWantsInstallation('no')}
-                  className="accent-accent"
+                  className="accent-accent h-4 w-4"
                 />
                 <span className="font-medium">No</span>
               </label>
-              <label className="flex cursor-pointer items-center gap-2 rounded-lg border p-3 transition-colors hover:bg-muted/50 has-[:checked]:border-accent has-[:checked]:bg-accent/10">
+              <label className="flex flex-1 sm:flex-initial justify-center cursor-pointer items-center gap-2 rounded-lg border p-3 transition-colors hover:bg-muted/50 has-[:checked]:border-accent has-[:checked]:bg-accent/10">
                 <input
                   type="radio"
                   name="wantsInstallation"
                   value="yes"
                   checked={wantsInstallation === 'yes'}
                   onChange={() => setWantsInstallation('yes')}
-                  className="accent-accent"
+                  className="accent-accent h-4 w-4"
                 />
                 <span className="font-medium">Yes</span>
               </label>
@@ -214,7 +281,7 @@ const Checkout = () => {
             )}
           </Card>
 
-          <Button type="submit" size="lg" className="w-full">Place Order</Button>
+          <Button type="submit" size="lg" className="w-full h-12 text-base font-medium">Place Order</Button>
         </form>
 
         {/* Order Summary */}

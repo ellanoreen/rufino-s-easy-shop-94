@@ -198,19 +198,19 @@ const AdminInventory = () => {
     });
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-3xl font-bold">Inventory</h1>
-          <p className="mt-1 text-muted-foreground">
+          <h1 className="font-display text-2xl sm:text-3xl font-bold">Inventory</h1>
+          <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
             {productsList.length} products · {totalStock} units in stock
           </p>
         </div>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={openAdd}><Plus className="mr-1.5 h-4 w-4" />Add Product</Button>
+            <Button onClick={openAdd} className="h-10 px-4 text-sm font-medium"><Plus className="mr-1.5 h-4 w-4" />Add Product</Button>
           </DialogTrigger>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -222,30 +222,30 @@ const AdminInventory = () => {
               {/* Name */}
               <div>
                 <Label>Name *</Label>
-                <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Walnut Dining Table" />
+                <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Walnut Dining Table" className="h-10 text-base sm:text-sm" />
                 {errors.name && <p className="text-xs text-destructive mt-1">{errors.name}</p>}
               </div>
               {/* Description */}
               <div>
                 <Label>Description *</Label>
-                <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Describe the product..." rows={3} />
+                <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Describe the product..." rows={3} className="text-base sm:text-sm" />
                 {errors.description && <p className="text-xs text-destructive mt-1">{errors.description}</p>}
               </div>
               {/* Price + Stock + Installation Fee */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <Label>Price (₱) *</Label>
-                  <Input type="number" min="0" step="0.01" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} placeholder="0.00" />
+                  <Input type="number" min="0" step="0.01" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} placeholder="0.00" className="h-10 text-base sm:text-sm" />
                   {errors.price && <p className="text-xs text-destructive mt-1">{errors.price}</p>}
                 </div>
                 <div>
                   <Label>Stock *</Label>
-                  <Input type="number" min="0" value={form.stock} onChange={e => setForm(f => ({ ...f, stock: e.target.value }))} placeholder="0" />
+                  <Input type="number" min="0" value={form.stock} onChange={e => setForm(f => ({ ...f, stock: e.target.value }))} placeholder="0" className="h-10 text-base sm:text-sm" />
                   {errors.stock && <p className="text-xs text-destructive mt-1">{errors.stock}</p>}
                 </div>
                 <div>
                   <Label>Installation Fee (₱)</Label>
-                  <Input type="number" min="0" step="0.01" value={form.installationFee} onChange={e => setForm(f => ({ ...f, installationFee: e.target.value }))} placeholder="0.00" />
+                  <Input type="number" min="0" step="0.01" value={form.installationFee} onChange={e => setForm(f => ({ ...f, installationFee: e.target.value }))} placeholder="0.00" className="h-10 text-base sm:text-sm" />
                 </div>
               </div>
               {/* Category */}
@@ -433,8 +433,80 @@ const AdminInventory = () => {
         <Input placeholder="Search products..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
       </div>
 
-      {/* ── Table ───────────────────────────────────────────────────────── */}
-      <Card>
+      {/* ── Mobile Product Cards (< 768px) ──────────────────────────────── */}
+      <div className="space-y-3 md:hidden">
+        {filtered.map(p => {
+          const sold = soldByProduct[p.id] || 0;
+          return (
+            <Card key={p.id} className={`p-4 ${p.stock === 0 ? 'border-destructive/30 bg-destructive/5' : p.stock <= 5 ? 'border-amber-300 bg-amber-50/40 dark:bg-amber-950/20' : ''}`}>
+              <div className="flex items-start gap-3">
+                <img src={p.image} alt={p.name} className="h-16 w-16 rounded-lg object-cover flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-1">
+                    <h3 className="font-semibold text-sm line-clamp-1">{p.name}</h3>
+                    <Badge variant="outline" className="text-[10px] shrink-0">{p.category}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{p.description}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="font-bold text-sm text-foreground">₱{p.price.toLocaleString()}</span>
+                    <Badge variant={p.stock === 0 ? 'destructive' : p.stock <= 5 ? 'destructive' : 'secondary'} className="text-[10px]">
+                      {p.stock === 0 ? 'Sold Out' : `${p.stock} in stock`}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 pt-3 border-t flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                <div>
+                  <span>Fee: {p.installationFee && p.installationFee > 0 ? `₱${p.installationFee}` : '₱0'}</span>
+                  <span className="ml-2 font-medium">Sold: {sold}</span>
+                </div>
+                <div className="flex items-center gap-1.5 ml-auto">
+                  <Input
+                    type="number"
+                    min="0"
+                    className="w-20 h-8 text-xs"
+                    value={editingStock[p.id] ?? ''}
+                    onChange={e => handleStockChange(p.id, e.target.value)}
+                    placeholder={String(p.stock)}
+                  />
+                  {editingStock[p.id] !== undefined && (
+                    <Button size="sm" variant="outline" className="h-8 text-xs px-2" onClick={() => handleSaveStock(p.id)}>
+                      Save
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete "{p.name}"?</AlertDialogTitle>
+                        <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDelete(p)} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            </Card>
+          );
+        })}
+        {filtered.length === 0 && (
+          <p className="text-center text-muted-foreground py-8 text-sm">No products found.</p>
+        )}
+      </div>
+
+      {/* ── Desktop Table (>= 768px) ────────────────────────────────────── */}
+      <Card className="hidden md:block">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
